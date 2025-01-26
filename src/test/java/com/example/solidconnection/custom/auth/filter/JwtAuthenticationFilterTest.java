@@ -1,5 +1,9 @@
-package com.example.solidconnection.config.security;
+package com.example.solidconnection.custom.auth.filter;
 
+import com.example.solidconnection.config.security.JwtProperties;
+import com.example.solidconnection.custom.auth.authentication.ExpiredAuthenticationToken;
+import com.example.solidconnection.custom.auth.authentication.ValidAuthenticationToken;
+import com.example.solidconnection.custom.auth.userdetails.JwtUserDetailsService;
 import com.example.solidconnection.support.TestContainerSpringBootTest;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

@@ -1,5 +1,7 @@
 package com.example.solidconnection.config.security;
 
+import com.example.solidconnection.custom.auth.provider.ValidAuthenticationTokenProvider;
+import com.example.solidconnection.custom.auth.provider.ExpiredAuthenticationTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

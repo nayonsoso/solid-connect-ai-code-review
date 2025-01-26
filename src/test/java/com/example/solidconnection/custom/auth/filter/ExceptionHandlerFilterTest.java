@@ -1,4 +1,4 @@
-package com.example.solidconnection.config.security;
+package com.example.solidconnection.custom.auth.filter;
 
 import com.example.solidconnection.custom.exception.CustomException;
 import com.example.solidconnection.custom.exception.ErrorCode;

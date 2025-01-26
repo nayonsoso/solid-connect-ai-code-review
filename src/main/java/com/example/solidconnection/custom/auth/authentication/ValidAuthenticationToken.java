@@ -1,5 +1,7 @@
-package com.example.solidconnection.config.security;
+package com.example.solidconnection.custom.auth.authentication;
 
+
+import com.example.solidconnection.custom.auth.userdetails.JwtUserDetails;
 
 public class ValidAuthenticationToken extends JwtAuthenticationToken {
 

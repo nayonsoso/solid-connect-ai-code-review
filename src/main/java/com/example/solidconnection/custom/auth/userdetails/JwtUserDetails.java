@@ -1,4 +1,4 @@
-package com.example.solidconnection.config.security;
+package com.example.solidconnection.custom.auth.userdetails;
 
 import com.example.solidconnection.siteuser.domain.SiteUser;
 import lombok.Getter;
