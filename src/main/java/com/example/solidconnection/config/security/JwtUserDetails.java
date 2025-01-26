@@ -1,5 +1,7 @@
 package com.example.solidconnection.config.security;
 
+import com.example.solidconnection.siteuser.domain.SiteUser;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -7,10 +9,15 @@ import java.util.Collection;
 
 public class JwtUserDetails implements UserDetails {
 
+    // userDetails 에서 userName 은 사용자 식별자를 의미함
     private final String userName;
 
-    public JwtUserDetails(String userName) {
-        this.userName = userName;
+    @Getter
+    private final SiteUser siteUser;
+
+    public JwtUserDetails(SiteUser siteUser) {
+        this.siteUser = siteUser;
+        this.userName = String.valueOf(siteUser.getId());
     }
 
     @Override
