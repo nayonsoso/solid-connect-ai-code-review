@@ -2,6 +2,7 @@ package com.example.solidconnection.custom.auth.argumentresolver;
 
 import com.example.solidconnection.custom.auth.authentication.ExpirationIgnoredToken;
 import com.example.solidconnection.support.TestContainerSpringBootTest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,11 @@ class ExpirationIgnoredTokenResolverTest {
 
     @Autowired
     private ExpirationIgnoredTokenResolver expirationIgnoredTokenResolver;
+
+    @BeforeEach
+    void setUp() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void security_context_에_저장된_만료시간을_검증하지_않는_토큰을_반환한다() throws Exception {
