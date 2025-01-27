@@ -1,7 +1,7 @@
 package com.example.solidconnection.config.security;
 
-import com.example.solidconnection.custom.auth.provider.ValidAuthenticationTokenProvider;
-import com.example.solidconnection.custom.auth.provider.ExpiredAuthenticationTokenProvider;
+import com.example.solidconnection.custom.auth.provider.SiteUserAuthenticationProvider;
+import com.example.solidconnection.custom.auth.provider.ExpirationIgnoredTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,14 +12,14 @@ import org.springframework.security.authentication.ProviderManager;
 @Configuration
 public class AuthenticationManagerConfig {
 
-    private final ValidAuthenticationTokenProvider validAuthenticationTokenProvider;
-    private final ExpiredAuthenticationTokenProvider expiredAuthenticationTokenProvider;
+    private final SiteUserAuthenticationProvider siteUserAuthenticationProvider;
+    private final ExpirationIgnoredTokenProvider expirationIgnoredTokenProvider;
 
     @Bean
     public AuthenticationManager authenticationManager() {
         return new ProviderManager(
-                validAuthenticationTokenProvider,
-                expiredAuthenticationTokenProvider
+                siteUserAuthenticationProvider,
+                expirationIgnoredTokenProvider
         );
     }
 }

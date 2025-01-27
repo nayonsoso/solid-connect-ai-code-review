@@ -1,7 +1,7 @@
 package com.example.solidconnection.custom.auth.provider;
 
 import com.example.solidconnection.config.security.JwtProperties;
-import com.example.solidconnection.custom.auth.authentication.ExpiredAuthenticationToken;
+import com.example.solidconnection.custom.auth.authentication.ExpirationIgnoredToken;
 import com.example.solidconnection.custom.exception.CustomException;
 import com.example.solidconnection.support.TestContainerSpringBootTest;
 import io.jsonwebtoken.Jwts;
@@ -23,10 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestContainerSpringBootTest
 @DisplayName("인증되지 않은 토큰 provider 테스트")
-class ExpiredAuthenticationTokenProviderTest {
+class ExpirationIgnoredTokenProviderTest {
 
     @Autowired
-    private ExpiredAuthenticationTokenProvider expiredAuthenticationTokenProvider;
+    private ExpirationIgnoredTokenProvider expirationIgnoredTokenProvider;
 
     @Autowired
     private JwtProperties jwtProperties;
@@ -34,13 +34,13 @@ class ExpiredAuthenticationTokenProviderTest {
     @Test
     void 처리할_수_있는_타입인지를_반환한다() {
         // given
-        Class<?> supportedType = ExpiredAuthenticationToken.class;
+        Class<?> supportedType = ExpirationIgnoredToken.class;
         Class<?> notSupportedType = PasswordAuthentication.class;
 
         // when & then
         assertAll(
-                () -> assertTrue(expiredAuthenticationTokenProvider.supports(supportedType)),
-                () -> assertFalse(expiredAuthenticationTokenProvider.supports(notSupportedType))
+                () -> assertTrue(expirationIgnoredTokenProvider.supports(supportedType)),
+                () -> assertFalse(expirationIgnoredTokenProvider.supports(notSupportedType))
         );
     }
 
@@ -48,14 +48,14 @@ class ExpiredAuthenticationTokenProviderTest {
     void 만료된_토큰의_인증_정보를_반환한다() {
         // given
         String expiredToken = createExpiredToken();
-        ExpiredAuthenticationToken expiredAuthenticationToken = new ExpiredAuthenticationToken(expiredToken);
+        ExpirationIgnoredToken expirationTokenIgnoredAuthentication = new ExpirationIgnoredToken(expiredToken);
 
         // when
-        Authentication result = expiredAuthenticationTokenProvider.authenticate(expiredAuthenticationToken);
+        Authentication result = expirationIgnoredTokenProvider.authenticate(expirationTokenIgnoredAuthentication);
 
         // then
         assertAll(
-                () -> assertThat(result).isInstanceOf(ExpiredAuthenticationToken.class),
+                () -> assertThat(result).isInstanceOf(ExpirationIgnoredToken.class),
                 () -> assertThat(result.isAuthenticated()).isFalse()
         );
     }
@@ -63,10 +63,10 @@ class ExpiredAuthenticationTokenProviderTest {
     @Test
     void 유효하지_않은_토큰이면_예외_응답을_반환한다() {
         // given
-        ExpiredAuthenticationToken expiredAuthenticationToken = new ExpiredAuthenticationToken("invalid token");
+        ExpirationIgnoredToken expirationTokenIgnoredAuthentication = new ExpirationIgnoredToken("invalid token");
 
         // when & then
-        assertThatCode(() -> expiredAuthenticationTokenProvider.authenticate(expiredAuthenticationToken))
+        assertThatCode(() -> expirationIgnoredTokenProvider.authenticate(expirationTokenIgnoredAuthentication))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining(INVALID_TOKEN.getMessage());
     }

@@ -2,7 +2,7 @@ package com.example.solidconnection.custom.auth.provider;
 
 
 import com.example.solidconnection.config.security.JwtProperties;
-import com.example.solidconnection.custom.auth.authentication.ValidAuthenticationToken;
+import com.example.solidconnection.custom.auth.authentication.SiteUserAuthentication;
 import com.example.solidconnection.custom.auth.userdetails.JwtUserDetails;
 import com.example.solidconnection.custom.auth.userdetails.JwtUserDetailsService;
 import lombok.RequiredArgsConstructor;
@@ -16,23 +16,23 @@ import static org.springframework.data.util.CastUtils.cast;
 
 @Component
 @RequiredArgsConstructor
-public class ValidAuthenticationTokenProvider implements AuthenticationProvider {
+public class SiteUserAuthenticationProvider implements AuthenticationProvider {
 
     private final JwtProperties jwtProperties;
     private final JwtUserDetailsService jwtUserDetailsService;
 
     @Override
     public Authentication authenticate(Authentication auth) throws AuthenticationException {
-        ValidAuthenticationToken jwtAuth = cast(auth);
+        SiteUserAuthentication jwtAuth = cast(auth);
         String token = (String) jwtAuth.getCredentials();
 
         String username = parseSubject(token, jwtProperties.secret());
         JwtUserDetails userDetails = (JwtUserDetails) jwtUserDetailsService.loadUserByUsername(username);
-        return new ValidAuthenticationToken(token, userDetails);
+        return new SiteUserAuthentication(token, userDetails);
     }
 
     @Override
     public boolean supports(Class<?> authentication) {
-        return ValidAuthenticationToken.class.isAssignableFrom(authentication);
+        return SiteUserAuthentication.class.isAssignableFrom(authentication);
     }
 }

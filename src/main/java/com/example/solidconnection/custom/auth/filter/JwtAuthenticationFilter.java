@@ -1,9 +1,9 @@
 package com.example.solidconnection.custom.auth.filter;
 
-import com.example.solidconnection.custom.auth.authentication.ExpiredAuthenticationToken;
-import com.example.solidconnection.custom.auth.authentication.JwtAuthenticationToken;
+import com.example.solidconnection.custom.auth.authentication.ExpirationIgnoredToken;
+import com.example.solidconnection.custom.auth.authentication.JwtAuthentication;
 import com.example.solidconnection.config.security.JwtProperties;
-import com.example.solidconnection.custom.auth.authentication.ValidAuthenticationToken;
+import com.example.solidconnection.custom.auth.authentication.SiteUserAuthentication;
 import com.example.solidconnection.util.JwtUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -39,17 +39,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        JwtAuthenticationToken authToken = createAuthentication(token);
+        JwtAuthentication authToken = createAuthentication(token);
         Authentication auth = authenticationManager.authenticate(authToken);
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         filterChain.doFilter(request, response);
     }
 
-    private JwtAuthenticationToken createAuthentication(String token) {
+    private JwtAuthentication createAuthentication(String token) {
         if (JwtUtils.isExpired(token, jwtProperties.secret())) {
-            return new ExpiredAuthenticationToken(token);
+            return new ExpirationIgnoredToken(token);
         }
-        return new ValidAuthenticationToken(token);
+        return new SiteUserAuthentication(token);
     }
 }

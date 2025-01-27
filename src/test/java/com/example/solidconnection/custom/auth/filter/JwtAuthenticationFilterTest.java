@@ -1,8 +1,8 @@
 package com.example.solidconnection.custom.auth.filter;
 
 import com.example.solidconnection.config.security.JwtProperties;
-import com.example.solidconnection.custom.auth.authentication.ExpiredAuthenticationToken;
-import com.example.solidconnection.custom.auth.authentication.ValidAuthenticationToken;
+import com.example.solidconnection.custom.auth.authentication.ExpirationIgnoredToken;
+import com.example.solidconnection.custom.auth.authentication.SiteUserAuthentication;
 import com.example.solidconnection.custom.auth.userdetails.JwtUserDetailsService;
 import com.example.solidconnection.support.TestContainerSpringBootTest;
 import io.jsonwebtoken.Jwts;
@@ -78,7 +78,7 @@ class JwtAuthenticationFilterTest {
 
             // then
             assertThat(SecurityContextHolder.getContext().getAuthentication())
-                    .isExactlyInstanceOf(ValidAuthenticationToken.class);
+                    .isExactlyInstanceOf(SiteUserAuthentication.class);
             then(filterChain).should().doFilter(request, response);
         }
 
@@ -94,7 +94,7 @@ class JwtAuthenticationFilterTest {
 
             // then
             assertThat(SecurityContextHolder.getContext().getAuthentication())
-                    .isExactlyInstanceOf(ExpiredAuthenticationToken.class);
+                    .isExactlyInstanceOf(ExpirationIgnoredToken.class);
             then(filterChain).should().doFilter(request, response);
         }
     }

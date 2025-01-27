@@ -1,8 +1,8 @@
 package com.example.solidconnection.custom.auth.provider;
 
 
-import com.example.solidconnection.custom.auth.authentication.ExpiredAuthenticationToken;
-import com.example.solidconnection.custom.auth.authentication.JwtAuthenticationToken;
+import com.example.solidconnection.custom.auth.authentication.ExpirationIgnoredToken;
+import com.example.solidconnection.custom.auth.authentication.JwtAuthentication;
 import com.example.solidconnection.config.security.JwtProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -15,21 +15,21 @@ import static org.springframework.data.util.CastUtils.cast;
 
 @Component
 @RequiredArgsConstructor
-public class ExpiredAuthenticationTokenProvider implements AuthenticationProvider {
+public class ExpirationIgnoredTokenProvider implements AuthenticationProvider {
 
     private final JwtProperties jwtProperties;
 
     @Override
     public Authentication authenticate(Authentication auth) throws AuthenticationException {
-        JwtAuthenticationToken jwtAuth = cast(auth);
-        String token = (String) jwtAuth.getCredentials();
+        JwtAuthentication jwtAuthentication = cast(auth);
+        String token = (String) jwtAuthentication.getCredentials();
         String subject = parseSubjectIgnoringExpiration(token, jwtProperties.secret());
 
-        return new ExpiredAuthenticationToken(token, subject);
+        return new ExpirationIgnoredToken(token, subject);
     }
 
     @Override
     public boolean supports(Class<?> authentication) {
-        return ExpiredAuthenticationToken.class.isAssignableFrom(authentication);
+        return ExpirationIgnoredToken.class.isAssignableFrom(authentication);
     }
 }

@@ -1,15 +1,12 @@
 package com.example.solidconnection.custom.auth.provider;
 
 import com.example.solidconnection.config.security.JwtProperties;
-import com.example.solidconnection.custom.auth.authentication.ValidAuthenticationToken;
+import com.example.solidconnection.custom.auth.authentication.SiteUserAuthentication;
 import com.example.solidconnection.custom.auth.userdetails.JwtUserDetails;
 import com.example.solidconnection.custom.exception.CustomException;
 import com.example.solidconnection.siteuser.domain.SiteUser;
 import com.example.solidconnection.siteuser.repository.SiteUserRepository;
 import com.example.solidconnection.support.TestContainerSpringBootTest;
-import com.example.solidconnection.type.Gender;
-import com.example.solidconnection.type.PreparationStatus;
-import com.example.solidconnection.type.Role;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,16 +21,17 @@ import java.util.Date;
 
 import static com.example.solidconnection.custom.exception.ErrorCode.AUTHENTICATION_FAILED;
 import static com.example.solidconnection.custom.exception.ErrorCode.INVALID_TOKEN;
+import static com.example.solidconnection.e2e.DynamicFixture.createSiteUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
 @TestContainerSpringBootTest
-@DisplayName("인증된 토큰 provider 테스트")
-class ValidAuthenticationTokenProviderTest {
+@DisplayName("사용자 인증 정보 provider 테스트")
+class SiteUserAuthenticationProviderTest {
 
     @Autowired
-    private ValidAuthenticationTokenProvider validAuthenticationTokenProvider;
+    private SiteUserAuthenticationProvider siteUserAuthenticationProvider;
 
     @Autowired
     private JwtProperties jwtProperties;
@@ -52,13 +50,13 @@ class ValidAuthenticationTokenProviderTest {
     @Test
     void 처리할_수_있는_타입인지를_반환한다() {
         // given
-        Class<?> supportedType = ValidAuthenticationToken.class;
+        Class<?> supportedType = SiteUserAuthentication.class;
         Class<?> notSupportedType = PasswordAuthentication.class;
 
         // when & then
         assertAll(
-                () -> assertThat(validAuthenticationTokenProvider.supports(supportedType)).isTrue(),
-                () -> assertThat(validAuthenticationTokenProvider.supports(notSupportedType)).isFalse()
+                () -> assertThat(siteUserAuthenticationProvider.supports(supportedType)).isTrue(),
+                () -> assertThat(siteUserAuthenticationProvider.supports(notSupportedType)).isFalse()
         );
     }
 
@@ -66,10 +64,10 @@ class ValidAuthenticationTokenProviderTest {
     void 유효한_토큰이면_정상적으로_인증_정보를_반환한다() {
         // given
         String token = createValidToken(siteUser.getId());
-        ValidAuthenticationToken auth = new ValidAuthenticationToken(token);
+        SiteUserAuthentication auth = new SiteUserAuthentication(token);
 
         // when
-        Authentication result = validAuthenticationTokenProvider.authenticate(auth);
+        Authentication result = siteUserAuthenticationProvider.authenticate(auth);
 
         // then
         assertThat(result).isNotNull();
@@ -85,10 +83,10 @@ class ValidAuthenticationTokenProviderTest {
         @Test
         void 유효하지_않은_토큰이면_예외_응답을_반환한다() {
             // given
-            ValidAuthenticationToken expiredAuth = new ValidAuthenticationToken(createExpiredToken());
+            SiteUserAuthentication expiredAuth = new SiteUserAuthentication(createExpiredToken());
 
             // when & then
-            assertThatCode(() -> validAuthenticationTokenProvider.authenticate(expiredAuth))
+            assertThatCode(() -> siteUserAuthenticationProvider.authenticate(expiredAuth))
                     .isInstanceOf(CustomException.class)
                     .hasMessageContaining(INVALID_TOKEN.getMessage());
         }
@@ -96,10 +94,10 @@ class ValidAuthenticationTokenProviderTest {
         @Test
         void 사용자_정보의_형식이_다르면_예외_응답을_반환한다() {
             // given
-            ValidAuthenticationToken wrongSubjectTypeAuth = new ValidAuthenticationToken(createWrongSubjectTypeToken());
+            SiteUserAuthentication wrongSubjectTypeAuth = new SiteUserAuthentication(createWrongSubjectTypeToken());
 
             // when & then
-            assertThatCode(() -> validAuthenticationTokenProvider.authenticate(wrongSubjectTypeAuth))
+            assertThatCode(() -> siteUserAuthenticationProvider.authenticate(wrongSubjectTypeAuth))
                     .isInstanceOf(CustomException.class)
                     .hasMessageContaining(INVALID_TOKEN.getMessage());
         }
@@ -109,10 +107,10 @@ class ValidAuthenticationTokenProviderTest {
             // given
             long notExistingUserId = siteUser.getId() + 100;
             String token = createValidToken(notExistingUserId);
-            ValidAuthenticationToken auth = new ValidAuthenticationToken(token);
+            SiteUserAuthentication auth = new SiteUserAuthentication(token);
 
             // when & then
-            assertThatCode(() -> validAuthenticationTokenProvider.authenticate(auth))
+            assertThatCode(() -> siteUserAuthenticationProvider.authenticate(auth))
                     .isInstanceOf(CustomException.class)
                     .hasMessageContaining(AUTHENTICATION_FAILED.getMessage());
         }
@@ -143,17 +141,5 @@ class ValidAuthenticationTokenProviderTest {
                 .setExpiration(new Date(System.currentTimeMillis() + 1000))
                 .signWith(SignatureAlgorithm.HS256, jwtProperties.secret())
                 .compact();
-    }
-
-    private SiteUser createSiteUser() {
-        return new SiteUser(
-                "test@example.com",
-                "nickname",
-                "profileImageUrl",
-                "1999-01-01",
-                PreparationStatus.CONSIDERING,
-                Role.MENTEE,
-                Gender.MALE
-        );
     }
 }
