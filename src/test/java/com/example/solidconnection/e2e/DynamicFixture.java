@@ -3,6 +3,7 @@ package com.example.solidconnection.e2e;
 import com.example.solidconnection.application.domain.Gpa;
 import com.example.solidconnection.application.domain.LanguageTest;
 import com.example.solidconnection.auth.dto.kakao.KakaoUserInfoDto;
+import com.example.solidconnection.siteuser.domain.AuthType;
 import com.example.solidconnection.siteuser.domain.SiteUser;
 import com.example.solidconnection.type.Gender;
 import com.example.solidconnection.type.LanguageTestType;
@@ -18,6 +19,19 @@ import com.example.solidconnection.university.domain.UniversityInfoForApply;
 import java.util.Set;
 
 public class DynamicFixture {
+
+    public static SiteUser createSiteUser() {
+        return new SiteUser(
+                "email",
+                "nickname",
+                "profileImage",
+                "2000-01-01",
+                PreparationStatus.CONSIDERING,
+                Role.MENTEE,
+                Gender.FEMALE,
+                AuthType.KAKAO
+        );
+    }
 
     public static SiteUser createSiteUserByEmail(String email) {
         return new SiteUser(

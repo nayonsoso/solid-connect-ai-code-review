@@ -84,16 +84,14 @@ public class SiteUserServiceTest {
     @Test
     void 초기_프로필_이미지를_수정한다_kakao() {
         siteUser.setProfileImageUrl(defaultProfileImageUrl);
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         when(s3Service.uploadFile(imageFile, ImgType.PROFILE)).thenReturn(uploadedFileUrlResponse);
 
         // When
         ProfileImageUpdateResponse profileImageUpdateResponse =
-                siteUserService.updateProfileImage(siteUser.getEmail(), imageFile);
+                siteUserService.updateProfileImage(siteUser, imageFile);
         // Then
         assertEquals(profileImageUpdateResponse, ProfileImageUpdateResponse.from(siteUser));
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
-        verify(s3Service, times(0)).deleteExProfile(siteUser.getEmail());
+        verify(s3Service, times(0)).deleteExProfile(siteUser);
         verify(s3Service, times(1)).uploadFile(imageFile, ImgType.PROFILE);
         verify(siteUserRepository, times(1)).save(any(SiteUser.class));
     }
@@ -101,16 +99,14 @@ public class SiteUserServiceTest {
     @Test
     void 초기_프로필_이미지를_수정한다_null() {
         siteUser.setProfileImageUrl(null);
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         when(s3Service.uploadFile(imageFile, ImgType.PROFILE)).thenReturn(uploadedFileUrlResponse);
 
         // When
         ProfileImageUpdateResponse profileImageUpdateResponse =
-                siteUserService.updateProfileImage(siteUser.getEmail(), imageFile);
+                siteUserService.updateProfileImage(siteUser, imageFile);
         // Then
         assertEquals(profileImageUpdateResponse, ProfileImageUpdateResponse.from(siteUser));
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
-        verify(s3Service, times(0)).deleteExProfile(siteUser.getEmail());
+        verify(s3Service, times(0)).deleteExProfile(siteUser);
         verify(s3Service, times(1)).uploadFile(imageFile, ImgType.PROFILE);
         verify(siteUserRepository, times(1)).save(any(SiteUser.class));
     }
@@ -118,28 +114,23 @@ public class SiteUserServiceTest {
     @Test
     void 프로필_이미지를_수정한다() {
         // Given
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         when(s3Service.uploadFile(imageFile, ImgType.PROFILE)).thenReturn(uploadedFileUrlResponse);
 
         // When
         ProfileImageUpdateResponse profileImageUpdateResponse =
-                siteUserService.updateProfileImage(siteUser.getEmail(), imageFile);
+                siteUserService.updateProfileImage(siteUser, imageFile);
         // Then
         assertEquals(profileImageUpdateResponse, ProfileImageUpdateResponse.from(siteUser));
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
-        verify(s3Service, times(1)).deleteExProfile(siteUser.getEmail());
+        verify(s3Service, times(1)).deleteExProfile(siteUser);
         verify(s3Service, times(1)).uploadFile(imageFile, ImgType.PROFILE);
         verify(siteUserRepository, times(1)).save(any(SiteUser.class));
     }
 
     @Test
     void 프로필_이미지를_수정할_때_이미지가_없다면_예외_응답을_반환한다() {
-        // Given
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
-
         // When & Then
         CustomException exception = assertThrows(CustomException.class, () ->
-                siteUserService.updateProfileImage(siteUser.getEmail(), null));
+                siteUserService.updateProfileImage(siteUser, null));
         assertThat(exception.getMessage())
                 .isEqualTo(PROFILE_IMAGE_NEEDED.getMessage());
         assertThat(exception.getCode())
@@ -150,14 +141,12 @@ public class SiteUserServiceTest {
     void 닉네임을_수정한다() {
         // Given
         NicknameUpdateRequest nicknameUpdateRequest = new NicknameUpdateRequest("newNickname");
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
 
         // When
         NicknameUpdateResponse nicknameUpdateResponse
-                = siteUserService.updateNickname(siteUser.getEmail(), nicknameUpdateRequest);
+                = siteUserService.updateNickname(siteUser, nicknameUpdateRequest);
         // Then
         assertEquals( nicknameUpdateResponse, NicknameUpdateResponse.from(siteUser));
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
         verify(siteUserRepository, times(1)).save(any(SiteUser.class));
     }
 
@@ -165,12 +154,11 @@ public class SiteUserServiceTest {
     void 닉네임을_수정할_때_중복된_닉네임이라면_예외_응답을_반환한다() {
         // Given
         NicknameUpdateRequest nicknameUpdateRequest = new NicknameUpdateRequest("newNickname");
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         when(siteUserRepository.existsByNickname(nicknameUpdateRequest.nickname())).thenReturn(true);
 
         // When & Then
         CustomException exception = assertThrows(CustomException.class, () ->
-                siteUserService.updateNickname(siteUser.getEmail(), nicknameUpdateRequest));
+                siteUserService.updateNickname(siteUser, nicknameUpdateRequest));
         assertThat(exception.getMessage())
                 .isEqualTo(NICKNAME_ALREADY_EXISTED.getMessage());
         assertThat(exception.getCode())
@@ -182,11 +170,10 @@ public class SiteUserServiceTest {
         // Given
         NicknameUpdateRequest nicknameUpdateRequest = new NicknameUpdateRequest("newNickname");
         siteUser.setNicknameModifiedAt(LocalDateTime.now());
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
 
         // When & Then
         CustomException exception = assertThrows(CustomException.class, () ->
-                siteUserService.updateNickname(siteUser.getEmail(), nicknameUpdateRequest));
+                siteUserService.updateNickname(siteUser, nicknameUpdateRequest));
 
         String formatLastModifiedAt
                 = String.format("(마지막 수정 시간 : %s)", NICKNAME_LAST_CHANGE_DATE_FORMAT.format(siteUser.getNicknameModifiedAt()));

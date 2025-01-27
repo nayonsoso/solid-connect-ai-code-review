@@ -98,14 +98,12 @@ public class ScoreServiceTest {
                 4.5, 4.5, LocalDate.of(2024, 10, 20), "http://example.com/gpa-report.pdf"
         );
         GpaScore newGpaScore = new GpaScore(gpaScoreRequest.toGpa(), siteUser, gpaScoreRequest.issueDate());
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         when(gpaScoreRepository.save(newGpaScore)).thenReturn(newGpaScore);
 
         // 새로운 gpa 저장하게된다.
-        scoreService.submitGpaScore(siteUser.getEmail(), gpaScoreRequest);
+        scoreService.submitGpaScore(siteUser, gpaScoreRequest);
 
         // Then
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
         verify(gpaScoreRepository, times(1)).save(any(GpaScore.class));
     }
 
@@ -119,26 +117,23 @@ public class ScoreServiceTest {
         LanguageTest languageTest = languageTestScoreRequest.toLanguageTest();
         LanguageTestScore languageTestScore = new LanguageTestScore(languageTest, LocalDate.of(2024, 10, 30), siteUser);
 
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         when(languageTestScoreRepository.save(any(LanguageTestScore.class))).thenReturn(languageTestScore);
 
         //when
-        scoreService.submitLanguageTestScore(siteUser.getEmail(), languageTestScoreRequest);
+        scoreService.submitLanguageTestScore(siteUser, languageTestScoreRequest);
 
         // Then
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
         verify(languageTestScoreRepository, times(1)).save(any(LanguageTestScore.class));
     }
 
     @Test
     void 학점이력을_조회한다_제출이력이_있을_때() {
         // Given
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         beforeGpaScore.setSiteUser(siteUser);
         beforeGpaScore2.setSiteUser(siteUser);
 
         // when
-        GpaScoreStatusResponse gpaScoreStatusResponse = scoreService.getGpaScoreStatus(siteUser.getEmail());
+        GpaScoreStatusResponse gpaScoreStatusResponse = scoreService.getGpaScoreStatus(siteUser);
 
         // Then
         List<GpaScoreStatus> expectedStatusList = List.of(
@@ -148,32 +143,27 @@ public class ScoreServiceTest {
         assertThat(gpaScoreStatusResponse.gpaScoreStatusList())
                 .hasSize(2)
                 .containsExactlyElementsOf(expectedStatusList);
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
     }
 
     @Test
     void 학점이력을_조회한다_제출이력이_없을_때() {
         // Given
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
-
         // when
-        GpaScoreStatusResponse gpaScoreStatus = scoreService.getGpaScoreStatus(siteUser.getEmail());
+        GpaScoreStatusResponse gpaScoreStatus = scoreService.getGpaScoreStatus(siteUser);
 
         // Then
         assertThat(gpaScoreStatus.gpaScoreStatusList()).isEmpty();
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
     }
 
 
     @Test
     void 어학이력을_조회한다_제출이력이_있을_때() {
         // Given
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         beforeLanguageTestScore.setSiteUser(siteUser);
         beforeLanguageTestScore2.setSiteUser(siteUser);
 
         // when
-        LanguageTestScoreStatusResponse languageTestScoreStatus = scoreService.getLanguageTestScoreStatus(siteUser.getEmail());
+        LanguageTestScoreStatusResponse languageTestScoreStatus = scoreService.getLanguageTestScoreStatus(siteUser);
 
         // Then
         List<LanguageTestScoreStatus> expectedStatusList = List.of(
@@ -183,19 +173,14 @@ public class ScoreServiceTest {
         assertThat(languageTestScoreStatus.languageTestScoreStatusList())
                 .hasSize(2)
                 .containsExactlyElementsOf(expectedStatusList);
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
     }
 
     @Test
     void 어학이력을_조회한다_제출이력이_없을_때() {
-        // Given
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
-
         // when
-        LanguageTestScoreStatusResponse languageTestScoreStatus = scoreService.getLanguageTestScoreStatus(siteUser.getEmail());
+        LanguageTestScoreStatusResponse languageTestScoreStatus = scoreService.getLanguageTestScoreStatus(siteUser);
 
         // Then
         assertThat(languageTestScoreStatus.languageTestScoreStatusList()).isEmpty();
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
     }
 }

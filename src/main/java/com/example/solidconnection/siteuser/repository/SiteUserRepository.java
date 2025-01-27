@@ -1,6 +1,7 @@
 package com.example.solidconnection.siteuser.repository;
 
 import com.example.solidconnection.custom.exception.CustomException;
+import com.example.solidconnection.siteuser.domain.AuthType;
 import com.example.solidconnection.siteuser.domain.SiteUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +18,8 @@ import static com.example.solidconnection.custom.exception.ErrorCode.USER_NOT_FO
 public interface SiteUserRepository extends JpaRepository<SiteUser, Long> {
 
     Optional<SiteUser> findByEmail(String email);
+
+    Optional<SiteUser> findByEmailAndAuthType(String email, AuthType authType);
 
     boolean existsByEmail(String email);
 

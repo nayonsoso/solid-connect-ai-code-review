@@ -45,9 +45,7 @@ public class CommentService {
     }
 
     @Transactional
-    public CommentCreateResponse createComment(String email, Long postId, CommentCreateRequest commentCreateRequest) {
-
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
+    public CommentCreateResponse createComment(SiteUser siteUser, Long postId, CommentCreateRequest commentCreateRequest) {
         Post post = postRepository.getById(postId);
 
         Comment parentComment = null;
@@ -68,13 +66,11 @@ public class CommentService {
     }
 
     @Transactional
-    public CommentUpdateResponse updateComment(String email, Long postId, Long commentId, CommentUpdateRequest commentUpdateRequest) {
-
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
+    public CommentUpdateResponse updateComment(SiteUser siteUser, Long postId, Long commentId, CommentUpdateRequest commentUpdateRequest) {
         Post post = postRepository.getById(postId);
         Comment comment = commentRepository.getById(commentId);
         validateDeprecated(comment);
-        validateOwnership(comment, email);
+        validateOwnership(comment, siteUser);
 
         comment.updateContent(commentUpdateRequest.content());
 
@@ -88,11 +84,10 @@ public class CommentService {
     }
 
     @Transactional
-    public CommentDeleteResponse deleteCommentById(String email, Long postId, Long commentId) {
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
+    public CommentDeleteResponse deleteCommentById(SiteUser siteUser, Long postId, Long commentId) {
         Post post = postRepository.getById(postId);
         Comment comment = commentRepository.getById(commentId);
-        validateOwnership(comment, email);
+        validateOwnership(comment, siteUser);
 
         if (comment.getParentComment() != null) {
             // 대댓글인 경우
@@ -119,8 +114,8 @@ public class CommentService {
         return new CommentDeleteResponse(commentId);
     }
 
-    private void validateOwnership(Comment comment, String email) {
-        if (!comment.getSiteUser().getEmail().equals(email)) {
+    private void validateOwnership(Comment comment, SiteUser siteUser) {
+        if (comment.getSiteUser().getId() != siteUser.getId()) {
             throw new CustomException(INVALID_POST_ACCESS);
         }
     }

@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,15 +33,19 @@ class PostLikeCountConcurrencyTest {
 
     @Autowired
     private PostService postService;
+
     @Autowired
     private PostRepository postRepository;
+
     @Autowired
     private BoardRepository boardRepository;
+
     @Autowired
     private SiteUserRepository siteUserRepository;
 
     @Value("${view.count.scheduling.delay}")
     private int SCHEDULING_DELAY_MS;
+
     private int THREAD_NUMS = 1000;
     private int THREAD_POOL_SIZE = 200;
     private int TIMEOUT_SECONDS = 10;
@@ -50,12 +56,9 @@ class PostLikeCountConcurrencyTest {
 
     @BeforeEach
     void setUp() {
-        board = createBoard();
-        boardRepository.save(board);
-        siteUser = createSiteUser();
-        siteUserRepository.save(siteUser);
-        post = createPost(board, siteUser);
-        postRepository.save(post);
+        board = boardRepository.save(createBoard());
+        siteUser = siteUserRepository.save(createSiteUser());
+        post = postRepository.save(createPost(board, siteUser));
         createSiteUsers();
     }
 
@@ -72,9 +75,9 @@ class PostLikeCountConcurrencyTest {
     }
 
     private void createSiteUsers() {
+        List<SiteUser> siteUsers = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
-
-            SiteUser siteUser = new SiteUser(
+            siteUsers.add(new SiteUser(
                     "email" + i,
                     "nickname",
                     "profileImageUrl",
@@ -82,14 +85,13 @@ class PostLikeCountConcurrencyTest {
                     PreparationStatus.CONSIDERING,
                     Role.MENTEE,
                     Gender.MALE
-            );
-            siteUserRepository.save(siteUser);
+            ));
         }
+        siteUserRepository.saveAll(siteUsers);
     }
 
     private Board createBoard() {
-        return new Board(
-                "FREE", "자유게시판");
+        return new Board("FREE", "자유게시판");
     }
 
     private Post createPost(Board board, SiteUser siteUser) {
@@ -102,24 +104,24 @@ class PostLikeCountConcurrencyTest {
                 PostCategory.valueOf("자유")
         );
         post.setBoardAndSiteUser(board, siteUser);
-
         return post;
     }
 
     @Test
     void 게시글_좋아요_동시성_문제를_해결한다() throws InterruptedException {
-
         ExecutorService executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
         CountDownLatch doneSignal = new CountDownLatch(THREAD_NUMS);
 
         Long likeCount = postRepository.getById(post.getId()).getLikeCount();
+        List<SiteUser> users = siteUserRepository.findAll();
 
         for (int i = 0; i < THREAD_NUMS; i++) {
-            String email = "email" + i;
+            final int index = i;
             executorService.submit(() -> {
                 try {
-                    postService.likePost(email, board.getCode(), post.getId());
-                    postService.dislikePost(email, board.getCode(), post.getId());
+                    SiteUser currentUser = users.get(index);
+                    postService.likePost(currentUser, board.getCode(), post.getId());
+                    postService.dislikePost(currentUser, board.getCode(), post.getId());
                 } finally {
                     doneSignal.countDown();
                 }
@@ -133,7 +135,7 @@ class PostLikeCountConcurrencyTest {
             System.err.println("ExecutorService did not terminate in the expected time.");
         }
 
+        Thread.sleep(100);
         assertEquals(likeCount, postRepository.getById(post.getId()).getLikeCount());
     }
-
 }

@@ -31,13 +31,13 @@ import static org.mockito.BDDMockito.given;
 class SignInTest extends BaseEndToEndTest {
 
     @Autowired
-    SiteUserRepository siteUserRepository;
+    private SiteUserRepository siteUserRepository;
 
     @Autowired
-    RedisTemplate<String, String> redisTemplate;
+    private RedisTemplate<String, String> redisTemplate;
 
     @MockBean
-    KakaoOAuthClient kakaoOAuthClient;
+    private KakaoOAuthClient kakaoOAuthClient;
 
     @Test
     void 신규_회원이_카카오로_로그인한다() {
@@ -79,7 +79,7 @@ class SignInTest extends BaseEndToEndTest {
                 .willReturn(createKakaoUserInfoDtoByEmail(email));
 
         // setUp - 사용자 정보 저장
-        siteUserRepository.save(createSiteUserByEmail(email));
+        SiteUser siteUser = siteUserRepository.save(createSiteUserByEmail(email));
 
         // request - body 생성 및 요청
         KakaoCodeRequest kakaoCodeRequest = new KakaoCodeRequest(kakaoCode);
@@ -95,7 +95,7 @@ class SignInTest extends BaseEndToEndTest {
                 () -> assertThat(response.isRegistered()).isTrue(),
                 () -> assertThat(response.accessToken()).isNotNull(),
                 () -> assertThat(response.refreshToken()).isNotNull());
-        assertThat(redisTemplate.opsForValue().get(REFRESH.addPrefixToSubject(email)))
+        assertThat(redisTemplate.opsForValue().get(REFRESH.addPrefixToSubject(siteUser.getId().toString())))
                 .as("리프레시 토큰을 저장한다.")
                 .isEqualTo(response.refreshToken());
     }
@@ -109,10 +109,10 @@ class SignInTest extends BaseEndToEndTest {
                 .willReturn(createKakaoUserInfoDtoByEmail(email));
 
         // setUp - 계정 복구 기간이 되지 않은 사용자 저장
-        SiteUser siteUserFixture = createSiteUserByEmail(email);
+        SiteUser siteUser = createSiteUserByEmail(email);
         LocalDate justBeforeRemoval = LocalDate.now().minusDays(ACCOUNT_RECOVER_DURATION - 1);
-        siteUserFixture.setQuitedAt(justBeforeRemoval);
-        siteUserRepository.save(siteUserFixture);
+        siteUser.setQuitedAt(justBeforeRemoval);
+        siteUserRepository.save(siteUser);
 
         // request - body 생성 및 요청
         KakaoCodeRequest kakaoCodeRequest = new KakaoCodeRequest(kakaoCode);
@@ -129,7 +129,7 @@ class SignInTest extends BaseEndToEndTest {
                 () -> assertThat(response.accessToken()).isNotNull(),
                 () -> assertThat(response.refreshToken()).isNotNull(),
                 () -> assertThat(siteUserRepository.getByEmail(email).getQuitedAt()).isNull());
-        assertThat(redisTemplate.opsForValue().get(REFRESH.addPrefixToSubject(email)))
+        assertThat(redisTemplate.opsForValue().get(REFRESH.addPrefixToSubject(siteUser.getId().toString())))
                 .as("리프레시 토큰을 저장한다.")
                 .isEqualTo(response.refreshToken());
     }

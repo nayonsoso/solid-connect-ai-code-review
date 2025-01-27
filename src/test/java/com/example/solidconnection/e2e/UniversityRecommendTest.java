@@ -1,7 +1,7 @@
 package com.example.solidconnection.e2e;
 
-import com.example.solidconnection.auth.service.TokenProvider;
 import com.example.solidconnection.auth.domain.TokenType;
+import com.example.solidconnection.auth.service.TokenProvider;
 import com.example.solidconnection.entity.InterestedCountry;
 import com.example.solidconnection.entity.InterestedRegion;
 import com.example.solidconnection.repositories.InterestedCountyRepository;
@@ -20,7 +20,7 @@ import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
-import static com.example.solidconnection.e2e.DynamicFixture.createSiteUserByEmail;
+import static com.example.solidconnection.e2e.DynamicFixture.createSiteUser;
 import static com.example.solidconnection.university.service.UniversityRecommendService.RECOMMEND_UNIVERSITY_NUM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -49,13 +49,12 @@ class UniversityRecommendTest extends UniversityDataSetUpEndToEndTest {
     @BeforeEach
     void setUp() {
         // setUp - 회원 정보 저장
-        String email = "email@email.com";
-        siteUser = siteUserRepository.save(createSiteUserByEmail(email));
+        siteUser = siteUserRepository.save(createSiteUser());
         generalRecommendUniversities.init();
 
         // setUp - 엑세스 토큰 생성과 리프레시 토큰 생성 및 저장
-        accessToken = tokenProvider.generateToken(email, TokenType.ACCESS);
-        String refreshToken = tokenProvider.generateToken(email, TokenType.REFRESH);
+        accessToken = tokenProvider.generateToken(siteUser, TokenType.ACCESS);
+        String refreshToken = tokenProvider.generateToken(siteUser, TokenType.REFRESH);
         tokenProvider.saveToken(refreshToken, TokenType.REFRESH);
     }
 

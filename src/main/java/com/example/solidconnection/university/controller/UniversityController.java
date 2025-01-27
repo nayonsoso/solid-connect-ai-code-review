@@ -1,5 +1,7 @@
 package com.example.solidconnection.university.controller;
 
+import com.example.solidconnection.custom.auth.argumentresolver.AuthorizedUser;
+import com.example.solidconnection.siteuser.domain.SiteUser;
 import com.example.solidconnection.siteuser.service.SiteUserService;
 import com.example.solidconnection.type.LanguageTestType;
 import com.example.solidconnection.university.dto.IsLikeResponse;
@@ -19,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.Principal;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -34,35 +35,36 @@ public class UniversityController {
 
     @GetMapping("/recommends")
     public ResponseEntity<UniversityRecommendsResponse> getUniversityRecommends(
-            Principal principal) {
-        if (principal == null) {
+            @AuthorizedUser SiteUser siteUser) {
+        if (siteUser == null) {
             return ResponseEntity.ok(universityRecommendService.getGeneralRecommends());
         } else {
-            return ResponseEntity.ok(universityRecommendService.getPersonalRecommends(principal.getName()));
+            return ResponseEntity.ok(universityRecommendService.getPersonalRecommends(siteUser));
         }
     }
 
     @GetMapping("/like")
-    public ResponseEntity<List<UniversityInfoForApplyPreviewResponse>> getMyWishUniversity(Principal principal) {
+    public ResponseEntity<List<UniversityInfoForApplyPreviewResponse>> getMyWishUniversity(
+            @AuthorizedUser SiteUser siteUser) {
         List<UniversityInfoForApplyPreviewResponse> wishUniversities
-                = siteUserService.getWishUniversity(principal.getName());
+                = siteUserService.getWishUniversity(siteUser);
         return ResponseEntity
                 .ok(wishUniversities);
     }
 
     @GetMapping("/{universityInfoForApplyId}/like")
     public ResponseEntity<IsLikeResponse> getIsLiked(
-            Principal principal,
+            @AuthorizedUser SiteUser siteUser,
             @PathVariable Long universityInfoForApplyId) {
-        IsLikeResponse isLiked = universityLikeService.getIsLiked(principal.getName(), universityInfoForApplyId);
+        IsLikeResponse isLiked = universityLikeService.getIsLiked(siteUser, universityInfoForApplyId);
         return ResponseEntity.ok(isLiked);
     }
 
     @PostMapping("/{universityInfoForApplyId}/like")
     public ResponseEntity<LikeResultResponse> addWishUniversity(
-            Principal principal,
+            @AuthorizedUser SiteUser siteUser,
             @PathVariable Long universityInfoForApplyId) {
-        LikeResultResponse likeResultResponse = universityLikeService.likeUniversity(principal.getName(), universityInfoForApplyId);
+        LikeResultResponse likeResultResponse = universityLikeService.likeUniversity(siteUser, universityInfoForApplyId);
         return ResponseEntity
                 .ok(likeResultResponse);
     }

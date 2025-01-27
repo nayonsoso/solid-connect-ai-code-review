@@ -8,6 +8,10 @@ import com.example.solidconnection.auth.dto.kakao.KakaoOauthResponse;
 import com.example.solidconnection.auth.service.AuthService;
 import com.example.solidconnection.auth.service.SignInService;
 import com.example.solidconnection.auth.service.SignUpService;
+import com.example.solidconnection.custom.auth.argumentresolver.AuthorizedUser;
+import com.example.solidconnection.custom.auth.argumentresolver.ExpirationIgnored;
+import com.example.solidconnection.custom.auth.authentication.ExpirationIgnoredToken;
+import com.example.solidconnection.siteuser.domain.SiteUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +20,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.security.Principal;
 
 @RequiredArgsConstructor
 @RequestMapping("/auth")
@@ -41,20 +43,20 @@ public class AuthController {
     }
 
     @PostMapping("/sign-out")
-    public ResponseEntity<Void> signOut(Principal principal) {
-        authService.signOut(principal.getName());
+    public ResponseEntity<Void> signOut(@ExpirationIgnored ExpirationIgnoredToken token) {
+        authService.signOut(token.getToken());
         return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/quit")
-    public ResponseEntity<Void> quit(Principal principal) {
-        authService.quit(principal.getName());
+    public ResponseEntity<Void> quit(@AuthorizedUser SiteUser siteUser) {
+        authService.quit(siteUser);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/reissue")
-    public ResponseEntity<ReissueResponse> reissueToken(Principal principal) {
-        ReissueResponse reissueResponse = authService.reissue(principal.getName());
+    public ResponseEntity<ReissueResponse> reissueToken(@ExpirationIgnored ExpirationIgnoredToken token) {
+        ReissueResponse reissueResponse = authService.reissue(token.getSubject());
         return ResponseEntity.ok(reissueResponse);
     }
 }

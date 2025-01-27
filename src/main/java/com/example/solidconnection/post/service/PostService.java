@@ -67,8 +67,8 @@ public class PostService {
         }
     }
 
-    private void validateOwnership(Post post, String email) {
-        if (!post.getSiteUser().getEmail().equals(email)) {
+    private void validateOwnership(Post post, SiteUser siteUser) {
+        if (!post.getSiteUser().getId().equals(siteUser.getId())) {
             throw new CustomException(INVALID_POST_ACCESS);
         }
     }
@@ -94,8 +94,8 @@ public class PostService {
         }
     }
 
-    private Boolean getIsOwner(Post post, String email) {
-        return post.getSiteUser().getEmail().equals(email);
+    private Boolean getIsOwner(Post post, SiteUser siteUser) {
+        return post.getSiteUser().getId().equals(siteUser.getId());
     }
 
     private Boolean getIsLiked(Post post, SiteUser siteUser) {
@@ -104,16 +104,14 @@ public class PostService {
     }
 
     @Transactional
-    public PostCreateResponse createPost(String email, String code, PostCreateRequest postCreateRequest,
+    public PostCreateResponse createPost(SiteUser siteUser, String code, PostCreateRequest postCreateRequest,
                                          List<MultipartFile> imageFile) {
-
         // 유효성 검증
         String boardCode = validateCode(code);
         validatePostCategory(postCreateRequest.postCategory());
         validateFileSize(imageFile);
 
         // 객체 생성
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
         Board board = boardRepository.getByCode(boardCode);
         Post post = postCreateRequest.toEntity(siteUser, board);
         // 이미지 처리
@@ -124,13 +122,13 @@ public class PostService {
     }
 
     @Transactional
-    public PostUpdateResponse updatePost(String email, String code, Long postId, PostUpdateRequest postUpdateRequest,
+    public PostUpdateResponse updatePost(SiteUser siteUser, String code, Long postId, PostUpdateRequest postUpdateRequest,
                                          List<MultipartFile> imageFile) {
 
         // 유효성 검증
         String boardCode = validateCode(code);
         Post post = postRepository.getById(postId);
-        validateOwnership(post, email);
+        validateOwnership(post, siteUser);
         validateQuestion(post);
         validateFileSize(imageFile);
 
@@ -163,22 +161,21 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PostFindResponse findPostById(String email, String code, Long postId) {
+    public PostFindResponse findPostById(SiteUser siteUser, String code, Long postId) {
 
         String boardCode = validateCode(code);
 
         Post post = postRepository.getByIdUsingEntityGraph(postId);
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
-        Boolean isOwner = getIsOwner(post, email);
+        Boolean isOwner = getIsOwner(post, siteUser);
         Boolean isLiked = getIsLiked(post, siteUser);
 
         PostFindBoardResponse boardPostFindResultDTO = PostFindBoardResponse.from(post.getBoard());
         PostFindSiteUserResponse siteUserPostFindResultDTO = PostFindSiteUserResponse.from(post.getSiteUser());
         List<PostFindPostImageResponse> postImageFindResultDTOList = PostFindPostImageResponse.from(post.getPostImageList());
-        List<PostFindCommentResponse> commentFindResultDTOList = commentService.findCommentsByPostId(email, postId);
+        List<PostFindCommentResponse> commentFindResultDTOList = commentService.findCommentsByPostId(siteUser.getEmail(), postId);
 
         // caching && 어뷰징 방지
-        if (redisService.isPresent(redisUtils.getValidatePostViewCountRedisKey(email, postId))) {
+        if (redisService.isPresent(redisUtils.getValidatePostViewCountRedisKey(siteUser.getEmail(), postId))) {
             redisService.increaseViewCount(redisUtils.getPostViewCountRedisKey(postId));
         }
 
@@ -187,11 +184,11 @@ public class PostService {
     }
 
     @Transactional
-    public PostDeleteResponse deletePostById(String email, String code, Long postId) {
+    public PostDeleteResponse deletePostById(SiteUser siteUser, String code, Long postId) {
 
         String boardCode = validateCode(code);
         Post post = postRepository.getById(postId);
-        validateOwnership(post, email);
+        validateOwnership(post, siteUser);
         validateQuestion(post);
 
         removePostImages(post);
@@ -204,11 +201,10 @@ public class PostService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public PostLikeResponse likePost(String email, String code, Long postId) {
+    public PostLikeResponse likePost(SiteUser siteUser, String code, Long postId) {
 
         String boardCode = validateCode(code);
         Post post = postRepository.getById(postId);
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
         validateDuplicatePostLike(post, siteUser);
 
         PostLike postLike = new PostLike();
@@ -226,11 +222,10 @@ public class PostService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public PostDislikeResponse dislikePost(String email, String code, Long postId) {
+    public PostDislikeResponse dislikePost(SiteUser siteUser, String code, Long postId) {
 
         String boardCode = validateCode(code);
         Post post = postRepository.getById(postId);
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
 
         PostLike postLike = postLikeRepository.getByPostAndSiteUser(post, siteUser);
         postLike.resetPostAndSiteUser();

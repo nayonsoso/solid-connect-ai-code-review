@@ -1,7 +1,7 @@
 package com.example.solidconnection.e2e;
 
-import com.example.solidconnection.auth.service.TokenProvider;
 import com.example.solidconnection.auth.domain.TokenType;
+import com.example.solidconnection.auth.service.TokenProvider;
 import com.example.solidconnection.siteuser.domain.SiteUser;
 import com.example.solidconnection.siteuser.repository.SiteUserRepository;
 import com.example.solidconnection.university.dto.LanguageRequirementResponse;
@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
-import static com.example.solidconnection.e2e.DynamicFixture.createSiteUserByEmail;
+import static com.example.solidconnection.e2e.DynamicFixture.createSiteUser;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("대학교 상세 조회 테스트")
@@ -31,13 +31,11 @@ class UniversityDetailTest extends UniversityDataSetUpEndToEndTest {
     @BeforeEach
     public void setUpUserAndToken() {
         // setUp - 회원 정보 저장
-        String email = "email@email.com";
-        SiteUser siteUser = createSiteUserByEmail(email);
-        siteUserRepository.save(siteUser);
+        SiteUser siteUser = siteUserRepository.save(createSiteUser());
 
         // setUp - 엑세스 토큰 생성과 리프레시 토큰 생성 및 저장
-        accessToken = tokenProvider.generateToken(email, TokenType.ACCESS);
-        String refreshToken = tokenProvider.generateToken(email, TokenType.REFRESH);
+        accessToken = tokenProvider.generateToken(siteUser, TokenType.ACCESS);
+        String refreshToken = tokenProvider.generateToken(siteUser, TokenType.REFRESH);
         tokenProvider.saveToken(refreshToken, TokenType.REFRESH);
     }
     

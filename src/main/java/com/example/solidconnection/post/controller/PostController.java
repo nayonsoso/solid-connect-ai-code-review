@@ -1,5 +1,6 @@
 package com.example.solidconnection.post.controller;
 
+import com.example.solidconnection.custom.auth.argumentresolver.AuthorizedUser;
 import com.example.solidconnection.post.dto.PostCreateRequest;
 import com.example.solidconnection.post.dto.PostCreateResponse;
 import com.example.solidconnection.post.dto.PostDeleteResponse;
@@ -9,6 +10,7 @@ import com.example.solidconnection.post.dto.PostLikeResponse;
 import com.example.solidconnection.post.dto.PostUpdateRequest;
 import com.example.solidconnection.post.dto.PostUpdateResponse;
 import com.example.solidconnection.post.service.PostService;
+import com.example.solidconnection.siteuser.domain.SiteUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -36,7 +38,7 @@ public class PostController {
 
     @PostMapping(value = "/{code}/posts")
     public ResponseEntity<?> createPost(
-            Principal principal,
+            @AuthorizedUser SiteUser siteUser,
             @PathVariable("code") String code,
             @Valid @RequestPart("postCreateRequest") PostCreateRequest postCreateRequest,
             @RequestParam(value = "file", required = false) List<MultipartFile> imageFile) {
@@ -44,14 +46,13 @@ public class PostController {
         if (imageFile == null) {
             imageFile = Collections.emptyList();
         }
-        PostCreateResponse post = postService
-                .createPost(principal.getName(), code, postCreateRequest, imageFile);
+        PostCreateResponse post = postService.createPost(siteUser, code, postCreateRequest, imageFile);
         return ResponseEntity.ok().body(post);
     }
 
     @PatchMapping(value = "/{code}/posts/{post_id}")
     public ResponseEntity<?> updatePost(
-            Principal principal,
+            @AuthorizedUser SiteUser siteUser,
             @PathVariable("code") String code,
             @PathVariable("post_id") Long postId,
             @Valid @RequestPart("postUpdateRequest") PostUpdateRequest postUpdateRequest,
@@ -60,52 +61,51 @@ public class PostController {
         if (imageFile == null) {
             imageFile = Collections.emptyList();
         }
-        PostUpdateResponse postUpdateResponse = postService
-                .updatePost(principal.getName(), code, postId, postUpdateRequest, imageFile);
+        PostUpdateResponse postUpdateResponse = postService.updatePost(
+                siteUser, code, postId, postUpdateRequest, imageFile);
         return ResponseEntity.ok().body(postUpdateResponse);
     }
 
 
     @GetMapping("/{code}/posts/{post_id}")
     public ResponseEntity<?> findPostById(
-            Principal principal,
+            @AuthorizedUser SiteUser siteUser,
             @PathVariable("code") String code,
             @PathVariable("post_id") Long postId) {
 
-        PostFindResponse postFindResponse = postService
-                .findPostById(principal.getName(), code, postId);
+        PostFindResponse postFindResponse = postService.findPostById(siteUser, code, postId);
         return ResponseEntity.ok().body(postFindResponse);
     }
 
     @DeleteMapping(value = "/{code}/posts/{post_id}")
     public ResponseEntity<?> deletePostById(
-            Principal principal,
+            @AuthorizedUser SiteUser siteUser,
             @PathVariable("code") String code,
             @PathVariable("post_id") Long postId) {
 
-        PostDeleteResponse postDeleteResponse = postService.deletePostById(principal.getName(), code, postId);
+        PostDeleteResponse postDeleteResponse = postService.deletePostById(siteUser, code, postId);
         return ResponseEntity.ok().body(postDeleteResponse);
     }
 
     @PostMapping(value = "/{code}/posts/{post_id}/like")
     public ResponseEntity<?> likePost(
-            Principal principal,
+            @AuthorizedUser SiteUser siteUser,
             @PathVariable("code") String code,
             @PathVariable("post_id") Long postId
     ) {
 
-        PostLikeResponse postLikeResponse = postService.likePost(principal.getName(), code, postId);
+        PostLikeResponse postLikeResponse = postService.likePost(siteUser, code, postId);
         return ResponseEntity.ok().body(postLikeResponse);
     }
 
     @DeleteMapping(value = "/{code}/posts/{post_id}/like")
     public ResponseEntity<?> dislikePost(
-            Principal principal,
+            @AuthorizedUser SiteUser siteUser,
             @PathVariable("code") String code,
             @PathVariable("post_id") Long postId
     ) {
 
-        PostDislikeResponse postDislikeResponse = postService.dislikePost(principal.getName(), code, postId);
+        PostDislikeResponse postDislikeResponse = postService.dislikePost(siteUser, code, postId);
         return ResponseEntity.ok().body(postDislikeResponse);
     }
 }

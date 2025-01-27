@@ -48,10 +48,8 @@ public class ApplicationQueryService {
      * - 1지망, 2지망 지원자들을 조회한다.
      * */
     @Transactional(readOnly = true)
-    @ThunderingHerdCaching(key = "application:query:{1}:{2}", cacheManager = "customCacheManager", ttlSec = 86400)
-    public ApplicationsResponse getApplicants(String email, String regionCode, String keyword) {
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
-
+    @ThunderingHerdCaching(key = "application:query:#p0.id:{2}", cacheManager = "customCacheManager", ttlSec = 86400)
+    public ApplicationsResponse getApplicants(SiteUser siteUser, String regionCode, String keyword) {
         // 국가와 키워드와 지역을 통해 대학을 필터링한다.
         List<University> universities
                 = universityFilterRepository.findByRegionCodeAndKeywords(regionCode, List.of(keyword));
@@ -64,9 +62,7 @@ public class ApplicationQueryService {
     }
 
     @Transactional(readOnly = true)
-    public ApplicationsResponse getApplicantsByUserApplications(String email) {
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
-
+    public ApplicationsResponse getApplicantsByUserApplications(SiteUser siteUser) {
         Application userLatestApplication = applicationRepository.getApplicationBySiteUserAndTerm(siteUser, term);
         List<University> userAppliedUniversities = Arrays.asList(
                         Optional.ofNullable(userLatestApplication.getFirstChoiceUniversity())
@@ -91,8 +87,7 @@ public class ApplicationQueryService {
     // 학기별로 상태가 관리된다.
     // 금학기에 지원이력이 있는 사용자만 지원정보를 확인할 수 있도록 한다.
     @Transactional(readOnly = true)
-    public void validateSiteUserCanViewApplicants(String email) {
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
+    public void validateSiteUserCanViewApplicants(SiteUser siteUser) {
         VerifyStatus verifyStatus = applicationRepository.getApplicationBySiteUserAndTerm(siteUser, term).getVerifyStatus();
         if (verifyStatus != VerifyStatus.APPROVED) {
             throw new CustomException(APPLICATION_NOT_APPROVED);

@@ -9,10 +9,7 @@ import com.example.solidconnection.post.repository.PostRepository;
 import com.example.solidconnection.siteuser.domain.SiteUser;
 import com.example.solidconnection.siteuser.repository.SiteUserRepository;
 import com.example.solidconnection.support.TestContainerDataJpaTest;
-import com.example.solidconnection.type.Gender;
 import com.example.solidconnection.type.PostCategory;
-import com.example.solidconnection.type.PreparationStatus;
-import com.example.solidconnection.type.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.example.solidconnection.custom.exception.ErrorCode.INVALID_POST_ID;
+import static com.example.solidconnection.e2e.DynamicFixture.createSiteUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -47,47 +45,9 @@ class PostRepositoryTest {
     void setUp() {
         board = createBoard();
         boardRepository.save(board);
-        siteUser = createSiteUser();
-        siteUserRepository.save(siteUser);
+        siteUser = siteUserRepository.save(createSiteUser());
         post = createPostWithImages(board, siteUser);
         post = postRepository.save(post);
-    }
-
-    private SiteUser createSiteUser() {
-        return new SiteUser(
-                "test@example.com",
-                "nickname",
-                "profileImageUrl",
-                "1999-01-01",
-                PreparationStatus.CONSIDERING,
-                Role.MENTEE,
-                Gender.MALE
-        );
-    }
-
-    private Board createBoard() {
-        return new Board(
-                "FREE", "자유게시판");
-    }
-
-    private Post createPostWithImages(Board board, SiteUser siteUser) {
-        Post postWithImages = new Post(
-                "title",
-                "content",
-                false,
-                0L,
-                0L,
-                PostCategory.valueOf("자유")
-        );
-        postWithImages.setBoardAndSiteUser(board, siteUser);
-
-        List<PostImage> postImageList = new ArrayList<>();
-        postImageList.add(new PostImage("https://s3.example.com/test1.png"));
-        postImageList.add(new PostImage("https://s3.example.com/test2.png"));
-        for (PostImage postImage : postImageList) {
-            postImage.setPost(postWithImages);
-        }
-        return postWithImages;
     }
 
     @Test
@@ -158,5 +118,30 @@ class PostRepositoryTest {
         // then
         Post response = postRepository.getById(post.getId());
         assertEquals(response.getLikeCount(), likeCount);
+    }
+
+    private Board createBoard() {
+        return new Board(
+                "FREE", "자유게시판");
+    }
+
+    private Post createPostWithImages(Board board, SiteUser siteUser) {
+        Post postWithImages = new Post(
+                "title",
+                "content",
+                false,
+                0L,
+                0L,
+                PostCategory.valueOf("자유")
+        );
+        postWithImages.setBoardAndSiteUser(board, siteUser);
+
+        List<PostImage> postImageList = new ArrayList<>();
+        postImageList.add(new PostImage("https://s3.example.com/test1.png"));
+        postImageList.add(new PostImage("https://s3.example.com/test2.png"));
+        for (PostImage postImage : postImageList) {
+            postImage.setPost(postWithImages);
+        }
+        return postWithImages;
     }
 }

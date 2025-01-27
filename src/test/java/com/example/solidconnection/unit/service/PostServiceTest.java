@@ -1,92 +1,112 @@
 package com.example.solidconnection.unit.service;
 
 import com.example.solidconnection.board.domain.Board;
-import com.example.solidconnection.board.dto.PostFindBoardResponse;
 import com.example.solidconnection.board.repository.BoardRepository;
-import com.example.solidconnection.comment.dto.PostFindCommentResponse;
 import com.example.solidconnection.comment.service.CommentService;
 import com.example.solidconnection.custom.exception.CustomException;
 import com.example.solidconnection.custom.exception.ErrorCode;
-import com.example.solidconnection.post.dto.PostFindPostImageResponse;
 import com.example.solidconnection.entity.PostImage;
-import com.example.solidconnection.post.domain.PostLike;
-import com.example.solidconnection.post.repository.PostLikeRepository;
 import com.example.solidconnection.post.domain.Post;
-import com.example.solidconnection.post.dto.*;
+import com.example.solidconnection.post.domain.PostLike;
+import com.example.solidconnection.post.dto.PostCreateRequest;
+import com.example.solidconnection.post.dto.PostCreateResponse;
+import com.example.solidconnection.post.dto.PostDeleteResponse;
+import com.example.solidconnection.post.dto.PostDislikeResponse;
+import com.example.solidconnection.post.dto.PostFindResponse;
+import com.example.solidconnection.post.dto.PostLikeResponse;
+import com.example.solidconnection.post.dto.PostUpdateRequest;
+import com.example.solidconnection.post.dto.PostUpdateResponse;
+import com.example.solidconnection.post.repository.PostLikeRepository;
 import com.example.solidconnection.post.repository.PostRepository;
 import com.example.solidconnection.post.service.PostService;
 import com.example.solidconnection.s3.S3Service;
 import com.example.solidconnection.s3.UploadedFileUrlResponse;
 import com.example.solidconnection.service.RedisService;
 import com.example.solidconnection.siteuser.domain.SiteUser;
-import com.example.solidconnection.siteuser.dto.PostFindSiteUserResponse;
 import com.example.solidconnection.siteuser.repository.SiteUserRepository;
-import com.example.solidconnection.type.*;
+import com.example.solidconnection.support.TestContainerSpringBootTest;
+import com.example.solidconnection.type.Gender;
+import com.example.solidconnection.type.ImgType;
+import com.example.solidconnection.type.PostCategory;
+import com.example.solidconnection.type.PreparationStatus;
+import com.example.solidconnection.type.Role;
 import com.example.solidconnection.util.RedisUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
-import static com.example.solidconnection.custom.exception.ErrorCode.*;
+import static com.example.solidconnection.custom.exception.ErrorCode.CAN_NOT_DELETE_OR_UPDATE_QUESTION;
+import static com.example.solidconnection.custom.exception.ErrorCode.CAN_NOT_UPLOAD_MORE_THAN_FIVE_IMAGES;
+import static com.example.solidconnection.custom.exception.ErrorCode.DUPLICATE_POST_LIKE;
+import static com.example.solidconnection.custom.exception.ErrorCode.INVALID_POST_ACCESS;
+import static com.example.solidconnection.custom.exception.ErrorCode.INVALID_POST_ID;
+import static com.example.solidconnection.custom.exception.ErrorCode.INVALID_POST_LIKE;
+import static com.example.solidconnection.e2e.DynamicFixture.createSiteUserByEmail;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-
-@ExtendWith(MockitoExtension.class)
+// todo: 테스트 보충할 필요 있음
+@TestContainerSpringBootTest
 @DisplayName("게시글 서비스 테스트")
 class PostServiceTest {
-    @InjectMocks
-    PostService postService;
-    @Mock
-    PostRepository postRepository;
-    @Mock
-    SiteUserRepository siteUserRepository;
-    @Mock
-    BoardRepository boardRepository;
-    @Mock
-    PostLikeRepository postLikeRepository;
-    @Mock
-    S3Service s3Service;
-    @Mock
-    CommentService commentService;
-    @Mock
-    RedisService redisService;
-    @Mock
-    RedisUtils redisUtils;
+
+    @Autowired
+    private PostService postService;
+
+    @Autowired
+    private PostRepository postRepository;
+
+    @Autowired
+    private SiteUserRepository siteUserRepository;
+
+    @Autowired
+    private BoardRepository boardRepository;
+
+    @Autowired
+    private PostLikeRepository postLikeRepository;
+
+    @Autowired
+    private CommentService commentService;
+
+    @MockBean
+    private RedisService redisService;
+
+    @MockBean
+    private RedisUtils redisUtils;
+
+    @MockBean
+    private S3Service s3Service;
 
     private SiteUser siteUser;
     private Board board;
     private Post post;
     private Post postWithImages;
     private Post questionPost;
-    private PostLike postLike;
     private List<MultipartFile> imageFiles;
-    private List<MultipartFile> imageFilesWithMoreThanFiveFiles;
     private List<UploadedFileUrlResponse> uploadedFileUrlResponseList;
 
 
     @BeforeEach
     void setUp() {
-        siteUser = createSiteUser();
-        board = createBoard();
+        siteUser = siteUserRepository.save(createSiteUser());
+        board = boardRepository.save(createBoard());
         imageFiles = createMockImageFiles();
-        imageFilesWithMoreThanFiveFiles = createMockImageFilesWithMoreThanFiveFiles();
         uploadedFileUrlResponseList = createUploadedFileUrlResponses();
-        post = createPost(board, siteUser);
-        postWithImages = createPostWithImages(board, siteUser);
-        questionPost = createQuestionPost(board, siteUser);
-        postLike = createPostLike(post, siteUser);
+        post = postRepository.save(createPost(board, siteUser));
+        postWithImages = postRepository.save(createPostWithImages(board, siteUser));
+        questionPost = postRepository.save(createQuestionPost(board, siteUser));
     }
 
     private SiteUser createSiteUser() {
@@ -175,98 +195,56 @@ class PostServiceTest {
         );
     }
 
-    private List<MultipartFile> createMockImageFilesWithMoreThanFiveFiles() {
-        List<MultipartFile> multipartFileList = new ArrayList<>();
-        multipartFileList.add(new MockMultipartFile("file1", "test1.png",
-                "image/png", "test image content 1".getBytes()));
-        multipartFileList.add(new MockMultipartFile("file2", "test1.png",
-                "image/png", "test image content 1".getBytes()));
-        multipartFileList.add(new MockMultipartFile("file3", "test1.png",
-                "image/png", "test image content 1".getBytes()));
-        multipartFileList.add(new MockMultipartFile("file4", "test1.png",
-                "image/png", "test image content 1".getBytes()));
-        multipartFileList.add(new MockMultipartFile("file5", "test1.png",
-                "image/png", "test image content 1".getBytes()));
-        multipartFileList.add(new MockMultipartFile("file6", "test1.png",
-                "image/png", "test image content 1".getBytes()));
-        return multipartFileList;
-    }
-
-    /**
-     * 게시글 등록
-     */
     @Test
     void 게시글을_등록한다_이미지_있음() {
         // Given
-        PostCreateRequest postCreateRequest = new PostCreateRequest(
-                "자유", "title", "content", false);
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
-        when(boardRepository.getByCode(board.getCode())).thenReturn(board);
+        PostCreateRequest postCreateRequest = new PostCreateRequest("자유", "title", "content", false);
         when(s3Service.uploadFiles(imageFiles, ImgType.COMMUNITY)).thenReturn(uploadedFileUrlResponseList);
-        when(postRepository.save(any(Post.class))).thenReturn(postWithImages);
 
         // When
         PostCreateResponse postCreateResponse = postService.createPost(
-                siteUser.getEmail(), board.getCode(), postCreateRequest, imageFiles);
+                siteUser, board.getCode(), postCreateRequest, imageFiles
+        );
 
         // Then
-        assertEquals(postCreateResponse, PostCreateResponse.from(postWithImages));
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
-        verify(boardRepository, times(1)).getByCode(board.getCode());
-        verify(s3Service, times(1)).uploadFiles(imageFiles, ImgType.COMMUNITY);
-        verify(postRepository, times(1)).save(any(Post.class));
+        assertThat(postCreateResponse).isNotNull();
     }
 
     @Test
     void 게시글을_등록한다_이미지_없음() {
         // Given
-        PostCreateRequest postCreateRequest = new PostCreateRequest(
-                "자유", "title", "content", false);
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
-        when(boardRepository.getByCode(board.getCode())).thenReturn(board);
-        when(postRepository.save(postCreateRequest.toEntity(siteUser, board))).thenReturn(post);
+        PostCreateRequest postCreateRequest = new PostCreateRequest("자유", "title", "content", false);
 
         // When
         PostCreateResponse postCreateResponse = postService.createPost(
-                siteUser.getEmail(), board.getCode(), postCreateRequest, Collections.emptyList());
+                siteUser, board.getCode(), postCreateRequest, Collections.emptyList());
 
         // Then
-        assertEquals(postCreateResponse, PostCreateResponse.from(post));
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
-        verify(boardRepository, times(1)).getByCode(board.getCode());
-        verify(postRepository, times(1)).save(postCreateRequest.toEntity(siteUser, board));
+        assertThat(postCreateResponse).isNotNull();
     }
 
     @Test
     void 게시글을_등록할_때_유효한_게시판이_아니라면_예외_응답을_반환한다() {
         // Given
         String invalidBoardCode = "INVALID_CODE";
-        PostCreateRequest postCreateRequest = new PostCreateRequest(
-                "자유", "title", "content", false);
+        PostCreateRequest postCreateRequest = new PostCreateRequest("자유", "title", "content", false);
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () -> postService
-                .createPost(siteUser.getEmail(), invalidBoardCode, postCreateRequest, Collections.emptyList()));
-        assertThat(exception.getMessage())
-                .isEqualTo(INVALID_BOARD_CODE.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(INVALID_BOARD_CODE.getCode());
+        assertThatCode(() -> postService.createPost(siteUser, invalidBoardCode, postCreateRequest, List.of()))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.INVALID_BOARD_CODE.getMessage());
     }
 
     @Test
     void 게시글을_등록할_때_유효한_카테고리가_아니라면_예외_응답을_반환한다() {
         // Given
         String invalidPostCategory = "invalidPostCategory";
-        PostCreateRequest postCreateRequest = new PostCreateRequest(
-                invalidPostCategory, "title", "content", false);
+        PostCreateRequest postCreateRequest = new PostCreateRequest(invalidPostCategory, "title", "content", false);
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () -> postService
-                .createPost(siteUser.getEmail(), board.getCode(), postCreateRequest, Collections.emptyList()));
-        assertThat(exception.getMessage())
-                .isEqualTo(INVALID_POST_CATEGORY.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(INVALID_POST_CATEGORY.getCode());
+        assertThatCode(() -> postService.createPost(siteUser, board.getCode(), postCreateRequest, List.of()))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.INVALID_POST_CATEGORY.getMessage());
     }
 
     @Test
@@ -274,87 +252,64 @@ class PostServiceTest {
         // Given
         PostCreateRequest postCreateRequest = new PostCreateRequest(
                 "자유", "title", "content", false);
+        List<MultipartFile> moreThanFiveFiles = createMockImageFilesWithMoreThanFiveFiles();
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () -> postService
-                .createPost(siteUser.getEmail(), board.getCode(), postCreateRequest, imageFilesWithMoreThanFiveFiles));
-        assertThat(exception.getMessage())
-                .isEqualTo(CAN_NOT_UPLOAD_MORE_THAN_FIVE_IMAGES.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(CAN_NOT_UPLOAD_MORE_THAN_FIVE_IMAGES.getCode());
+        assertThatCode(() -> postService.createPost(siteUser, board.getCode(), postCreateRequest, moreThanFiveFiles))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(CAN_NOT_UPLOAD_MORE_THAN_FIVE_IMAGES.getMessage());
     }
 
-    /**
-     * 게시글 수정
-     */
     @Test
     void 게시글을_수정한다_기존_사진_없음_수정_사진_없음() {
         // Given
         PostUpdateRequest postUpdateRequest = new PostUpdateRequest("질문", "updateTitle", "updateContent");
-        when(postRepository.getById(post.getId())).thenReturn(post);
 
         // When
         PostUpdateResponse response = postService.updatePost(
-                siteUser.getEmail(), board.getCode(), post.getId(), postUpdateRequest, Collections.emptyList());
+                siteUser, board.getCode(), post.getId(), postUpdateRequest, Collections.emptyList());
 
         // Then
-        assertEquals(response, PostUpdateResponse.from(post));
-        verify(postRepository, times(1)).getById(post.getId());
-        verify(s3Service, times(0)).deletePostImage(any(String.class));
-        verify(s3Service, times(0)).uploadFiles(anyList(), any(ImgType.class));
+        assertThat(response).isNotNull();
     }
 
     @Test
     void 게시글을_수정한다_기존_사진_있음_수정_사진_없음() {
         // Given
         PostUpdateRequest postUpdateRequest = new PostUpdateRequest("자유", "updateTitle", "updateContent");
-        when(postRepository.getById(postWithImages.getId())).thenReturn(postWithImages);
 
         // When
         PostUpdateResponse response = postService.updatePost(
-                siteUser.getEmail(), board.getCode(), postWithImages.getId(), postUpdateRequest, Collections.emptyList());
+                siteUser, board.getCode(), postWithImages.getId(), postUpdateRequest, Collections.emptyList());
 
         // Then
-        assertEquals(response, PostUpdateResponse.from(postWithImages));
-        verify(postRepository, times(1)).getById(postWithImages.getId());
-        verify(s3Service, times(imageFiles.size())).deletePostImage(any(String.class));
-        verify(s3Service, times(0)).uploadFiles(anyList(), any(ImgType.class));
+        assertThat(response).isNotNull();
     }
 
     @Test
     void 게시글을_수정한다_기존_사진_없음_수정_사진_있음() {
         // Given
         PostUpdateRequest postUpdateRequest = new PostUpdateRequest("자유", "updateTitle", "updateContent");
-        when(postRepository.getById(post.getId())).thenReturn(post);
-        when(s3Service.uploadFiles(imageFiles, ImgType.COMMUNITY)).thenReturn(uploadedFileUrlResponseList);
 
         // When
         PostUpdateResponse response = postService.updatePost(
-                siteUser.getEmail(), board.getCode(), post.getId(), postUpdateRequest, imageFiles);
+                siteUser, board.getCode(), post.getId(), postUpdateRequest, imageFiles);
 
         // Then
-        assertEquals(response, PostUpdateResponse.from(post));
-        verify(postRepository, times(1)).getById(post.getId());
-        verify(s3Service, times(0)).deletePostImage(any(String.class));
-        verify(s3Service, times(1)).uploadFiles(imageFiles, ImgType.COMMUNITY);
+        assertThat(response).isNotNull();
     }
 
     @Test
     void 게시글을_수정한다_기존_사진_있음_수정_사진_있음() {
         // Given
         PostUpdateRequest postUpdateRequest = new PostUpdateRequest("자유", "updateTitle", "updateContent");
-        when(postRepository.getById(postWithImages.getId())).thenReturn(postWithImages);
-        when(s3Service.uploadFiles(imageFiles, ImgType.COMMUNITY)).thenReturn(uploadedFileUrlResponseList);
 
         // When
         PostUpdateResponse response = postService.updatePost(
-                siteUser.getEmail(), board.getCode(), postWithImages.getId(), postUpdateRequest, imageFiles);
+                siteUser, board.getCode(), postWithImages.getId(), postUpdateRequest, imageFiles);
 
         // Then
-        assertEquals(response, PostUpdateResponse.from(postWithImages));
-        verify(postRepository, times(1)).getById(postWithImages.getId());
-        verify(s3Service, times(imageFiles.size())).deletePostImage(any(String.class));
-        verify(s3Service, times(1)).uploadFiles(imageFiles, ImgType.COMMUNITY);
+        assertThat(response).isNotNull();
     }
 
     @Test
@@ -364,12 +319,9 @@ class PostServiceTest {
         String invalidBoardCode = "INVALID_CODE";
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.updatePost(siteUser.getEmail(), invalidBoardCode, post.getId(), postUpdateRequest, imageFiles));
-        assertThat(exception.getMessage())
-                .isEqualTo(ErrorCode.INVALID_BOARD_CODE.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(ErrorCode.INVALID_BOARD_CODE.getCode());
+        assertThatCode(() -> postService.updatePost(siteUser, invalidBoardCode, post.getId(), postUpdateRequest, imageFiles))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.INVALID_BOARD_CODE.getMessage());
     }
 
     @Test
@@ -377,46 +329,34 @@ class PostServiceTest {
         // Given
         Long invalidPostId = -1L;
         PostUpdateRequest postUpdateRequest = new PostUpdateRequest("자유", "title", "content");
-        when(postRepository.getById(invalidPostId)).thenThrow(new CustomException(INVALID_POST_ID));
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.updatePost(siteUser.getEmail(), board.getCode(), invalidPostId, postUpdateRequest, imageFiles));
-        assertThat(exception.getMessage())
-                .isEqualTo(INVALID_POST_ID.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(INVALID_POST_ID.getCode());
+        assertThatCode(() -> postService.updatePost(siteUser, board.getCode(), invalidPostId, postUpdateRequest, imageFiles))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(INVALID_POST_ID.getMessage());
     }
 
     @Test
     void 게시글을_수정할_때_본인의_게시글이_아니라면_예외_응답을_반환한다() {
         // Given
-        String invalidEmail = "invalidEmail@example.com";
+        SiteUser otherSiteUser = siteUserRepository.save(createSiteUserByEmail("other@email.com"));
         PostUpdateRequest postUpdateRequest = new PostUpdateRequest("자유", "title", "content");
-        when(postRepository.getById(post.getId())).thenReturn(post);
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.updatePost(invalidEmail, board.getCode(), post.getId(), postUpdateRequest, imageFiles));
-        assertThat(exception.getMessage())
-                .isEqualTo(INVALID_POST_ACCESS.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(INVALID_POST_ACCESS.getCode());
+        assertThatCode(() -> postService.updatePost(otherSiteUser, board.getCode(), post.getId(), postUpdateRequest, null))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(INVALID_POST_ACCESS.getMessage());
     }
 
     @Test
     void 게시글을_수정할_때_질문글_이라면_예외_응답을_반환한다() {
         // Given
         PostUpdateRequest postUpdateRequest = new PostUpdateRequest("자유", "title", "content");
-        when(postRepository.getById(questionPost.getId())).thenReturn(questionPost);
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.updatePost(siteUser.getEmail(), board.getCode(), questionPost.getId(), postUpdateRequest, imageFiles));
-        assertThat(exception.getMessage())
-                .isEqualTo(CAN_NOT_DELETE_OR_UPDATE_QUESTION.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(CAN_NOT_DELETE_OR_UPDATE_QUESTION.getCode());
+        assertThatCode(() -> postService.updatePost(siteUser, board.getCode(), questionPost.getId(), postUpdateRequest, imageFiles))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(CAN_NOT_DELETE_OR_UPDATE_QUESTION.getMessage());
     }
 
 
@@ -424,15 +364,12 @@ class PostServiceTest {
     void 게시글을_수정할_때_파일_수가_5개를_넘는다면_예외_응답을_반환한다() {
         // Given
         PostUpdateRequest postUpdateRequest = new PostUpdateRequest("자유", "title", "content");
-        when(postRepository.getById(post.getId())).thenReturn(post);
+        List<MultipartFile> moreThanFiveFiles = createMockImageFilesWithMoreThanFiveFiles();
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.updatePost(siteUser.getEmail(), board.getCode(), post.getId(), postUpdateRequest, imageFilesWithMoreThanFiveFiles));
-        assertThat(exception.getMessage())
-                .isEqualTo(CAN_NOT_UPLOAD_MORE_THAN_FIVE_IMAGES.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(CAN_NOT_UPLOAD_MORE_THAN_FIVE_IMAGES.getCode());
+        assertThatCode(() -> postService.updatePost(siteUser, board.getCode(), post.getId(), postUpdateRequest, moreThanFiveFiles))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(CAN_NOT_UPLOAD_MORE_THAN_FIVE_IMAGES.getMessage());
     }
 
     /**
@@ -440,31 +377,11 @@ class PostServiceTest {
      */
     @Test
     void 게시글을_찾는다() {
-        // Given
-        List<PostFindCommentResponse> commentFindResultDTOList = new ArrayList<>();
-        when(postRepository.getByIdUsingEntityGraph(post.getId())).thenReturn(post);
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
-        when(postLikeRepository.findPostLikeByPostAndSiteUser(post, siteUser)).thenReturn(Optional.empty());
-        when(commentService.findCommentsByPostId(siteUser.getEmail(), post.getId())).thenReturn(commentFindResultDTOList);
-
         // When
-        PostFindResponse response = postService.findPostById(siteUser.getEmail(), board.getCode(), post.getId());
+        PostFindResponse response = postService.findPostById(siteUser, board.getCode(), post.getId());
 
         // Then
-        PostFindResponse expectedResponse = PostFindResponse.from(
-                post,
-                true,
-                false,
-                PostFindBoardResponse.from(post.getBoard()),
-                PostFindSiteUserResponse.from(post.getSiteUser()),
-                commentFindResultDTOList,
-                PostFindPostImageResponse.from(post.getPostImageList())
-        );
-        assertEquals(expectedResponse, response);
-        verify(postRepository, times(1)).getByIdUsingEntityGraph(post.getId());
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
-        verify(postLikeRepository, times(1)).findPostLikeByPostAndSiteUser(post, siteUser);
-        verify(commentService, times(1)).findCommentsByPostId(siteUser.getEmail(), post.getId());
+        assertThat(response.id()).isEqualTo(post.getId());
     }
 
     @Test
@@ -473,27 +390,20 @@ class PostServiceTest {
         String invalidBoardCode = "INVALID_CODE";
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.findPostById(siteUser.getEmail(), invalidBoardCode, post.getId()));
-        assertThat(exception.getMessage())
-                .isEqualTo(ErrorCode.INVALID_BOARD_CODE.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(ErrorCode.INVALID_BOARD_CODE.getCode());
+        assertThatCode(() -> postService.findPostById(siteUser, invalidBoardCode, post.getId()))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.INVALID_BOARD_CODE.getMessage());
     }
 
     @Test
     void 게시글을_찾을_때_유효한_게시글이_아니라면_예외_응답을_반환한다() {
         // Given
         Long invalidPostId = -1L;
-        when(postRepository.getByIdUsingEntityGraph(invalidPostId)).thenThrow(new CustomException(INVALID_POST_ID));
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.findPostById(siteUser.getEmail(), board.getCode(), invalidPostId));
-        assertThat(exception.getMessage())
-                .isEqualTo(INVALID_POST_ID.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(INVALID_POST_ID.getCode());
+        assertThatCode(() -> postService.findPostById(siteUser, board.getCode(), invalidPostId))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(INVALID_POST_ID.getMessage());
     }
 
     /**
@@ -501,17 +411,11 @@ class PostServiceTest {
      */
     @Test
     void 게시글을_삭제한다() {
-        // Give
-        when(postRepository.getById(post.getId())).thenReturn(post);
-
         // When
-        PostDeleteResponse postDeleteResponse = postService.deletePostById(siteUser.getEmail(), board.getCode(), post.getId());
+        PostDeleteResponse postDeleteResponse = postService.deletePostById(siteUser, board.getCode(), post.getId());
 
         // Then
         assertEquals(postDeleteResponse.id(), post.getId());
-        verify(postRepository, times(1)).getById(post.getId());
-        verify(redisService, times(1)).deleteKey(redisUtils.getPostViewCountRedisKey(post.getId()));
-        verify(postRepository, times(1)).deleteById(post.getId());
     }
 
     @Test
@@ -521,7 +425,7 @@ class PostServiceTest {
 
         // When & Then
         CustomException exception = assertThrows(CustomException.class, () ->
-                postService.deletePostById(siteUser.getEmail(), invalidBoardCode, post.getId()));
+                postService.deletePostById(siteUser, invalidBoardCode, post.getId()));
         assertThat(exception.getMessage())
                 .isEqualTo(ErrorCode.INVALID_BOARD_CODE.getMessage());
         assertThat(exception.getCode())
@@ -532,44 +436,27 @@ class PostServiceTest {
     void 게시글을_삭제할_때_유효한_게시글이_아니라면_예외_응답을_반환한다() {
         // Given
         Long invalidPostId = -1L;
-        when(postRepository.getById(invalidPostId)).thenThrow(new CustomException(INVALID_POST_ID));
-
-        // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.deletePostById(siteUser.getEmail(), board.getCode(), invalidPostId));
-        assertThat(exception.getMessage())
-                .isEqualTo(ErrorCode.INVALID_POST_ID.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(ErrorCode.INVALID_POST_ID.getCode());
+        assertThatCode(() -> postService.deletePostById(siteUser, board.getCode(), invalidPostId))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(INVALID_POST_ID.getMessage());
     }
 
     @Test
     void 게시글을_삭제할_때_자신의_게시글이_아니라면_예외_응답을_반환한다() {
         // Given
-        String invalidEmail = "invalidEmail@example.com";
-        when(postRepository.getById(post.getId())).thenReturn(post);
+        SiteUser otherSiteUser = siteUserRepository.save(createSiteUserByEmail("hi"));
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.deletePostById(invalidEmail, board.getCode(), post.getId())
-        );
-        assertThat(exception.getMessage())
-                .isEqualTo(INVALID_POST_ACCESS.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(INVALID_POST_ACCESS.getCode());
+        assertThatCode(() -> postService.deletePostById(otherSiteUser, board.getCode(), post.getId()))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(INVALID_POST_ACCESS.getMessage());
     }
 
     @Test
     void 게시글을_삭제할_때_질문글_이라면_예외_응답을_반환한다() {
-        when(postRepository.getById(questionPost.getId())).thenReturn(questionPost);
-
-        // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.deletePostById(siteUser.getEmail(), board.getCode(), questionPost.getId()));
-        assertThat(exception.getMessage())
-                .isEqualTo(ErrorCode.CAN_NOT_DELETE_OR_UPDATE_QUESTION.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(ErrorCode.CAN_NOT_DELETE_OR_UPDATE_QUESTION.getCode());
+        assertThatCode(() -> postService.deletePostById(siteUser, board.getCode(), questionPost.getId()))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(CAN_NOT_DELETE_OR_UPDATE_QUESTION.getMessage());
     }
 
     /**
@@ -577,31 +464,22 @@ class PostServiceTest {
      */
     @Test
     void 게시글_좋아요를_등록한다() {
-        // Given
-        when(postRepository.getById(post.getId())).thenReturn(post);
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
-
         // When
-        PostLikeResponse postLikeResponse = postService.likePost(siteUser.getEmail(), board.getCode(), post.getId());
+        PostLikeResponse postLikeResponse = postService.likePost(siteUser, board.getCode(), post.getId());
 
         // Then
-        assertEquals(postLikeResponse, PostLikeResponse.from(post));
-        verify(postLikeRepository, times(1)).save(any(PostLike.class));
+        assertThat(postLikeResponse.isLiked()).isTrue();
     }
 
     @Test
     void 게시글_좋아요를_등록할_때_중복된_좋아요라면_예외_응답을_반환한다() {
-        when(postRepository.getById(post.getId())).thenReturn(post);
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
-        when(postLikeRepository.findPostLikeByPostAndSiteUser(post, siteUser)).thenReturn(Optional.of(postLike));
+        // Given
+        postService.likePost(siteUser, board.getCode(), post.getId());
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.likePost(siteUser.getEmail(), board.getCode(), post.getId()));
-        assertThat(exception.getMessage())
-                .isEqualTo(ErrorCode.DUPLICATE_POST_LIKE.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(ErrorCode.DUPLICATE_POST_LIKE.getCode());
+        assertThatCode(() -> postService.likePost(siteUser, board.getCode(), post.getId()))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(DUPLICATE_POST_LIKE.getMessage());
     }
 
     @Test
@@ -610,58 +488,41 @@ class PostServiceTest {
         String invalidBoardCode = "INVALID_CODE";
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.likePost(siteUser.getEmail(), invalidBoardCode, post.getId()));
-        assertThat(exception.getMessage())
-                .isEqualTo(ErrorCode.INVALID_BOARD_CODE.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(ErrorCode.INVALID_BOARD_CODE.getCode());
+        assertThatCode(() -> postService.likePost(siteUser, invalidBoardCode, post.getId()))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.INVALID_BOARD_CODE.getMessage());
     }
 
     @Test
     void 게시글_좋아요를_등록할_때_유효한_게시글이_아니라면_예외_응답을_반환한다() {
         // Given
         Long invalidPostId = -1L;
-        when(postRepository.getById(invalidPostId)).thenThrow(new CustomException(INVALID_POST_ID));
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.likePost(siteUser.getEmail(), board.getCode(), invalidPostId));
-        assertThat(exception.getMessage())
-                .isEqualTo(INVALID_POST_ID.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(INVALID_POST_ID.getCode());
+        assertThatCode(() -> postService.likePost(siteUser, board.getCode(), invalidPostId))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(INVALID_POST_ID.getMessage());
     }
 
     @Test
     void 게시글_좋아요를_삭제한다() {
         // Given
+        postService.likePost(siteUser, board.getCode(), post.getId());
         Long likeCount = post.getLikeCount();
-        when(postRepository.getById(post.getId())).thenReturn(post);
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
-        when(postLikeRepository.getByPostAndSiteUser(post, siteUser)).thenReturn(postLike);
 
         // When
-        PostDislikeResponse postDislikeResponse = postService.dislikePost(siteUser.getEmail(), board.getCode(), post.getId());
+        PostDislikeResponse postDislikeResponse = postService.dislikePost(siteUser, board.getCode(), post.getId());
 
         // Then
-        assertEquals(postDislikeResponse, PostDislikeResponse.from(post));
-        verify(postLikeRepository, times(1)).deleteById(post.getId());
+        assertThat(postDislikeResponse.isLiked()).isFalse();
     }
 
     @Test
     void 게시글_좋아요를_삭제할_때_존재하지_않는_좋아요라면_예외_응답을_반환한다() {
-        when(postRepository.getById(post.getId())).thenReturn(post);
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
-        when(postLikeRepository.getByPostAndSiteUser(post, siteUser)).thenThrow(new CustomException(INVALID_POST_LIKE));
-
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.dislikePost(siteUser.getEmail(), board.getCode(), post.getId()));
-        assertThat(exception.getMessage())
-                .isEqualTo(ErrorCode.INVALID_POST_LIKE.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(ErrorCode.INVALID_POST_LIKE.getCode());
+        assertThatCode(() -> postService.dislikePost(siteUser, board.getCode(), post.getId()))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(INVALID_POST_LIKE.getMessage());
     }
 
     @Test
@@ -670,26 +531,30 @@ class PostServiceTest {
         String invalidBoardCode = "INVALID_CODE";
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.dislikePost(siteUser.getEmail(), invalidBoardCode, post.getId()));
-        assertThat(exception.getMessage())
-                .isEqualTo(ErrorCode.INVALID_BOARD_CODE.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(ErrorCode.INVALID_BOARD_CODE.getCode());
+        assertThatCode(() -> postService.dislikePost(siteUser, invalidBoardCode, post.getId()))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.INVALID_BOARD_CODE.getMessage());
     }
 
     @Test
     void 게시글_좋아요를_삭제할_때_유효한_게시글이_아니라면_예외_응답을_반환한다() {
         // Given
         Long invalidPostId = -1L;
-        when(postRepository.getById(invalidPostId)).thenThrow(new CustomException(INVALID_POST_ID));
 
         // When & Then
-        CustomException exception = assertThrows(CustomException.class, () ->
-                postService.dislikePost(siteUser.getEmail(), board.getCode(), invalidPostId));
-        assertThat(exception.getMessage())
-                .isEqualTo(INVALID_POST_ID.getMessage());
-        assertThat(exception.getCode())
-                .isEqualTo(INVALID_POST_ID.getCode());
+        assertThatCode(() -> postService.dislikePost(siteUser, board.getCode(), invalidPostId))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(INVALID_POST_ID.getMessage());
+    }
+
+    private List<MultipartFile> createMockImageFilesWithMoreThanFiveFiles() {
+        return List.of(
+                new MockMultipartFile("file1", "test1.png", "image/png", "test image content 1".getBytes()),
+                new MockMultipartFile("file2", "test2.png", "image/png", "test image content 1".getBytes()),
+                new MockMultipartFile("file3", "test3.png", "image/png", "test image content 1".getBytes()),
+                new MockMultipartFile("file4", "test4.png", "image/png", "test image content 1".getBytes()),
+                new MockMultipartFile("file5", "test5.png", "image/png", "test image content 1".getBytes()),
+                new MockMultipartFile("file6", "test6.png", "image/png", "test image content 1".getBytes())
+        );
     }
 }

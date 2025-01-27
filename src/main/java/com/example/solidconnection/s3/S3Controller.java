@@ -1,5 +1,7 @@
 package com.example.solidconnection.s3;
 
+import com.example.solidconnection.custom.auth.argumentresolver.AuthorizedUser;
+import com.example.solidconnection.siteuser.domain.SiteUser;
 import com.example.solidconnection.type.ImgType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,8 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.security.Principal;
 
 @RequiredArgsConstructor
 @RequestMapping("/file")
@@ -41,9 +41,10 @@ public class S3Controller {
 
     @PostMapping("/profile/post")
     public ResponseEntity<UploadedFileUrlResponse> uploadPostProfileImage(
-            @RequestParam("file") MultipartFile imageFile, Principal principal) {
+            @AuthorizedUser SiteUser siteUser,
+            @RequestParam("file") MultipartFile imageFile) {
         UploadedFileUrlResponse profileImageUrl = s3Service.uploadFile(imageFile, ImgType.PROFILE);
-        s3Service.deleteExProfile(principal.getName());
+        s3Service.deleteExProfile(siteUser);
         return ResponseEntity.ok(profileImageUrl);
     }
 

@@ -92,7 +92,6 @@ public class ApplicationServiceTest {
                 languageTestScoreId,
                 new UniversityChoiceRequest(firstChoiceUniversityId, secondChoiceUniversityId, thirdChoiceUniversityId)
         );
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         gpaScore.setVerifyStatus(VerifyStatus.APPROVED);
         when(gpaScoreRepository.findGpaScoreBySiteUserAndId(siteUser, gpaScoreId)).thenReturn(Optional.of(gpaScore));
         languageTestScore.setVerifyStatus(VerifyStatus.APPROVED);
@@ -100,11 +99,10 @@ public class ApplicationServiceTest {
         when(applicationRepository.findBySiteUserAndTerm(siteUser, term)).thenReturn(Optional.empty());
 
         // When
-        boolean result = applicationSubmissionService.apply(siteUser.getEmail(), applyRequest);
+        boolean result = applicationSubmissionService.apply(siteUser, applyRequest);
 
         // Then
         assertThat(result).isEqualTo(true);
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
         verify(gpaScoreRepository, times(1)).findGpaScoreBySiteUserAndId(siteUser, gpaScoreId);
         verify(languageTestScoreRepository, times(1)).findLanguageTestScoreBySiteUserAndId(siteUser, languageTestScoreId);
         verify(applicationRepository, times(1)).save(any(Application.class));
@@ -126,7 +124,6 @@ public class ApplicationServiceTest {
                 new UniversityChoiceRequest(firstChoiceUniversityId, secondChoiceUniversityId, thirdChoiceUniversityId)
         );
 
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         gpaScore.setVerifyStatus(VerifyStatus.APPROVED);
         when(gpaScoreRepository.findGpaScoreBySiteUserAndId(siteUser, 1L)).thenReturn(Optional.of(gpaScore));
         languageTestScore.setVerifyStatus(VerifyStatus.APPROVED);
@@ -134,11 +131,10 @@ public class ApplicationServiceTest {
         when(applicationRepository.findBySiteUserAndTerm(siteUser, term)).thenReturn(Optional.of(beforeApplication));
 
         // When
-        boolean result = applicationSubmissionService.apply(siteUser.getEmail(), applyRequest);
+        boolean result = applicationSubmissionService.apply(siteUser, applyRequest);
 
         // Then
         assertThat(result).isEqualTo(true);
-        verify(siteUserRepository, times(1)).getByEmail(siteUser.getEmail());
         verify(gpaScoreRepository, times(1)).findGpaScoreBySiteUserAndId(siteUser, gpaScoreId);
         verify(languageTestScoreRepository, times(1)).findLanguageTestScoreBySiteUserAndId(siteUser, languageTestScoreId);
         verify(applicationRepository, times(1)).findBySiteUserAndTerm(siteUser, term);
@@ -156,11 +152,10 @@ public class ApplicationServiceTest {
                 languageTestScoreId,
                 new UniversityChoiceRequest(firstChoiceUniversityId, secondChoiceUniversityId, thirdChoiceUniversityId)
         );
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         when(gpaScoreRepository.findGpaScoreBySiteUserAndId(siteUser, gpaScoreId)).thenReturn(Optional.empty());
         // when, then
         CustomException exception = assertThrows(CustomException.class, () -> {
-            applicationSubmissionService.apply(siteUser.getEmail(), applyRequest);
+            applicationSubmissionService.apply(siteUser, applyRequest);
         });
         assertThat(exception.getMessage())
                 .isEqualTo(ErrorCode.INVALID_GPA_SCORE.getMessage());
@@ -176,13 +171,12 @@ public class ApplicationServiceTest {
                 languageTestScoreId,
                 new UniversityChoiceRequest(firstChoiceUniversityId, secondChoiceUniversityId, thirdChoiceUniversityId)
         );
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         gpaScore.setVerifyStatus(VerifyStatus.REJECTED);
         when(gpaScoreRepository.findGpaScoreBySiteUserAndId(siteUser, gpaScoreId)).thenReturn(Optional.of(gpaScore));
 
         // when, then
         CustomException exception = assertThrows(CustomException.class, () -> {
-            applicationSubmissionService.apply(siteUser.getEmail(), applyRequest);
+            applicationSubmissionService.apply(siteUser, applyRequest);
         });
         assertThat(exception.getMessage())
                 .isEqualTo(ErrorCode.INVALID_GPA_SCORE_STATUS.getMessage());
@@ -198,14 +192,13 @@ public class ApplicationServiceTest {
                 languageTestScoreId,
                 new UniversityChoiceRequest(firstChoiceUniversityId, secondChoiceUniversityId, thirdChoiceUniversityId)
         );
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         gpaScore.setVerifyStatus(VerifyStatus.APPROVED);
         when(gpaScoreRepository.findGpaScoreBySiteUserAndId(siteUser, gpaScoreId)).thenReturn(Optional.of(gpaScore));
         when(languageTestScoreRepository.findLanguageTestScoreBySiteUserAndId(siteUser, languageTestScoreId)).thenReturn(Optional.empty());
 
         // when, then
         CustomException exception = assertThrows(CustomException.class, () -> {
-            applicationSubmissionService.apply(siteUser.getEmail(), applyRequest);
+            applicationSubmissionService.apply(siteUser, applyRequest);
         });
         assertThat(exception.getMessage())
                 .isEqualTo(ErrorCode.INVALID_LANGUAGE_TEST_SCORE.getMessage());
@@ -221,7 +214,6 @@ public class ApplicationServiceTest {
                 languageTestScoreId,
                 new UniversityChoiceRequest(firstChoiceUniversityId, secondChoiceUniversityId, thirdChoiceUniversityId)
         );
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
         gpaScore.setVerifyStatus(VerifyStatus.APPROVED);
         when(gpaScoreRepository.findGpaScoreBySiteUserAndId(siteUser, gpaScoreId)).thenReturn(Optional.of(gpaScore));
         languageTestScore.setVerifyStatus(VerifyStatus.REJECTED);
@@ -229,7 +221,7 @@ public class ApplicationServiceTest {
 
         // when, then
         CustomException exception = assertThrows(CustomException.class, () -> {
-            applicationSubmissionService.apply(siteUser.getEmail(), applyRequest);
+            applicationSubmissionService.apply(siteUser, applyRequest);
         });
         assertThat(exception.getMessage())
                 .isEqualTo(ErrorCode.INVALID_LANGUAGE_TEST_SCORE_STATUS.getMessage());
@@ -245,11 +237,10 @@ public class ApplicationServiceTest {
                 languageTestScoreId,
                 new UniversityChoiceRequest(firstChoiceUniversityId, firstChoiceUniversityId, firstChoiceUniversityId)
         );
-        when(siteUserRepository.getByEmail(siteUser.getEmail())).thenReturn(siteUser);
 
         // when, then
         CustomException exception = assertThrows(CustomException.class, () -> {
-            applicationSubmissionService.apply(siteUser.getEmail(), applyRequest);
+            applicationSubmissionService.apply(siteUser, applyRequest);
         });
         assertThat(exception.getMessage())
                 .isEqualTo(ErrorCode.CANT_APPLY_FOR_SAME_UNIVERSITY.getMessage());

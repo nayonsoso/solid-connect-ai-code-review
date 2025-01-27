@@ -48,8 +48,7 @@ public class ApplicationSubmissionService {
     // 학점 및 어학성적이 모두 유효한 경우에만 지원서 등록이 가능하다.
     // 기존에 있던 status field 우선 APRROVED로 입력시킨다.
     @Transactional
-    public boolean apply(String email, ApplyRequest applyRequest) {
-        SiteUser siteUser = siteUserRepository.getByEmail(email);
+    public boolean apply(SiteUser siteUser, ApplyRequest applyRequest) {
         UniversityChoiceRequest universityChoiceRequest = applyRequest.universityChoiceRequest();
         validateUniversityChoices(universityChoiceRequest);
 
