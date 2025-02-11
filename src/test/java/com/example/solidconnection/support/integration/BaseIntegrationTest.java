@@ -4,15 +4,15 @@ import com.example.solidconnection.application.domain.Application;
 import com.example.solidconnection.application.domain.Gpa;
 import com.example.solidconnection.application.domain.LanguageTest;
 import com.example.solidconnection.application.repository.ApplicationRepository;
-import com.example.solidconnection.board.domain.Board;
-import com.example.solidconnection.board.repository.BoardRepository;
+import com.example.solidconnection.community.board.domain.Board;
+import com.example.solidconnection.community.board.repository.BoardRepository;
 import com.example.solidconnection.entity.Country;
-import com.example.solidconnection.entity.PostImage;
+import com.example.solidconnection.community.post.domain.PostImage;
 import com.example.solidconnection.entity.Region;
-import com.example.solidconnection.post.domain.Post;
-import com.example.solidconnection.post.repository.PostRepository;
+import com.example.solidconnection.community.post.domain.Post;
+import com.example.solidconnection.community.post.repository.PostRepository;
 import com.example.solidconnection.repositories.CountryRepository;
-import com.example.solidconnection.repositories.PostImageRepository;
+import com.example.solidconnection.community.post.repository.PostImageRepository;
 import com.example.solidconnection.repositories.RegionRepository;
 import com.example.solidconnection.score.domain.GpaScore;
 import com.example.solidconnection.score.domain.LanguageTestScore;
@@ -39,7 +39,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 
@@ -511,8 +510,7 @@ public abstract class BaseIntegrationTest {
     private GpaScore createApprovedGpaScore(SiteUser siteUser) {
         GpaScore gpaScore = new GpaScore(
                 new Gpa(4.0, 4.5, "/gpa-report.pdf"),
-                siteUser,
-                LocalDate.now()
+                siteUser
         );
         gpaScore.setVerifyStatus(VerifyStatus.APPROVED);
         return gpaScoreRepository.save(gpaScore);
@@ -521,7 +519,6 @@ public abstract class BaseIntegrationTest {
     private LanguageTestScore createApprovedLanguageTestScore(SiteUser siteUser) {
         LanguageTestScore languageTestScore = new LanguageTestScore(
                 new LanguageTest(LanguageTestType.TOEIC, "100", "/gpa-report.pdf"),
-                LocalDate.now(),
                 siteUser
         );
         languageTestScore.setVerifyStatus(VerifyStatus.APPROVED);

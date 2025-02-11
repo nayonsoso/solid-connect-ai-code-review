@@ -1,9 +1,9 @@
 package com.example.solidconnection.concurrency;
 
-import com.example.solidconnection.board.domain.Board;
-import com.example.solidconnection.board.repository.BoardRepository;
-import com.example.solidconnection.post.domain.Post;
-import com.example.solidconnection.post.repository.PostRepository;
+import com.example.solidconnection.community.board.domain.Board;
+import com.example.solidconnection.community.board.repository.BoardRepository;
+import com.example.solidconnection.community.post.domain.Post;
+import com.example.solidconnection.community.post.repository.PostRepository;
 import com.example.solidconnection.service.RedisService;
 import com.example.solidconnection.siteuser.domain.SiteUser;
 import com.example.solidconnection.siteuser.repository.SiteUserRepository;
