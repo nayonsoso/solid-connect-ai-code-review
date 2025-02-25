@@ -50,7 +50,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build with Gradle Wrapper
-        run: ./gradlew build -Dspring.profiles.active=ci
+        run: ./gradlew build -Dspring.profiles.active=ci  -Dlogging.level.org.springframework=DEBUG
 
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
