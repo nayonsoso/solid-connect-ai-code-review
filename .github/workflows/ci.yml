@@ -20,6 +20,23 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
 
+      - name: 🔍 Docker 데몬 상태 확인 🐳
+        run: |
+          echo "🚀 도커 데몬 상태를 확인합니다 🚀"
+          if docker info; then
+            echo "✅ 도커 데몬이 정상적으로 동작 중입니다! ✅"
+            echo "🐳 도커 버전 정보 🐳"
+            docker version
+            echo "📦 실행 중인 컨테이너 목록 📦"
+            docker ps
+          else
+            echo "❌ 도커 데몬이 동작하지 않습니다! ❌"
+            echo "🔄 도커 서비스 상태 확인 🔄"
+            sudo systemctl status docker || true
+            echo "📝 도커 로그 확인 📝"
+            sudo journalctl -u docker --no-pager -n 50 || true
+          fi
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
